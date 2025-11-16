@@ -1,0 +1,24 @@
+# robots.txt for DRKD TRADELINK
+# https://www.drkdtradelink.com/robots.txt
+
+User-agent: *
+Allow: /
+
+# Disallow any hidden or system files
+Disallow: /.htaccess
+Disallow: /.git/
+Disallow: /.DS_Store
+Disallow: /node_modules/
+
+# Allow important resources
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /assets/
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://www.drkdtradelink.com/sitemap.xml
+
+# Crawl-delay (optional - remove if not needed)
+# Crawl-delay: 1
+

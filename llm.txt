@@ -1,0 +1,111 @@
+# DRKD TRADELINK - Website Information for LLMs
+
+## About This Website
+
+DRKD TRADELINK is a comprehensive logistics and freight forwarding company based in Ahmedabad, Gujarat, India. The company specializes in customs clearance, freight forwarding, road transport, and a wide range of logistics services for Indian and SEZ (Special Economic Zone) operations.
+
+## Website Structure
+
+### Main Pages
+- **Homepage (/)**: Main landing page with services overview, company information, testimonials, and contact form
+- **Card Page (/card)**: Duplicate of homepage content for business card sharing purposes
+
+### Key Sections
+
+1. **Hero Section**: Main value proposition - "The Platform for Indian Logistics"
+2. **Services Section**: Comprehensive list of 18+ logistics services offered
+3. **Why Choose Us Section**: Company advantages and differentiators
+4. **Testimonials Section**: Customer reviews and testimonials
+5. **Contact Section**: Quote request form with shipment details
+
+## Services Offered
+
+1. Customs Clearance
+2. Freight Forwarding (Air & Sea)
+3. Road Transport
+4. Custom Brokers
+5. Cargo Handling
+6. Warehousing
+7. Custom Bonded Warehouse
+8. Bulk & Break Bulk
+9. Project Cargo Handling
+10. Stevedore
+11. Flexi Tank Supply
+12. Domestic Seaways Transport
+13. Valuer
+14. Surveyor
+15. Pest Control
+16. Tank Cleaning
+17. Ship Chandler
+18. NVOCC (Non-Vessel Operating Common Carrier)
+
+## Company Information
+
+- **Name**: DRKD TRADELINK
+- **Location**: A-123, Commerce House, Ahmedabad, Gujarat, India
+- **Email**: contact@drkdtradelink.com
+- **Phone**: +91 12345 67890
+- **WhatsApp**: +91 12345 67890
+- **Service Area**: India (with SEZ specialization)
+
+## Key Value Propositions
+
+1. **Tech-Enabled Transparency**: Digital platform for real-time tracking and visibility
+2. **SEZ Specialists**: Deep expertise in Special Economic Zone requirements
+3. **24/7 Proactive Support**: Always-available dedicated point of contact
+4. **One-Stop Solution**: Complete logistics services from customs to final delivery
+5. **Firefighter Approach**: Proactive problem-solving before issues arise
+
+## Technical Details
+
+- **Framework**: Vanilla HTML with Tailwind CSS (CDN)
+- **Fonts**: Inter (Google Fonts)
+- **Form Handling**: Formspree (https://formspree.io/f/mdkyooop)
+- **SEO**: Comprehensive meta tags, Open Graph, Twitter Cards, JSON-LD structured data
+- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation support
+- **Performance**: Lazy loading images, preconnect for external resources
+
+## Contact Form Fields
+
+- Origin City/Port
+- Destination City/Port
+- Shipment Type (FTL, LTL, FCL, LCL, Air Freight)
+- Primary Service Needed
+- Full Name
+- Company Name
+- Work Email
+- Contact Number
+- Additional Details (optional)
+
+## Target Audience
+
+- Importers and exporters in India
+- Businesses operating in SEZs
+- Companies requiring customs clearance
+- Businesses needing freight forwarding services
+- Organizations requiring end-to-end logistics solutions
+
+## Business Model
+
+DRKD TRADELINK positions itself as a "firefighter" logistics partner, proactively solving problems and providing comprehensive logistics services. The company emphasizes transparency, technology-enabled solutions, and expertise in SEZ operations.
+
+## Website Features
+
+- Responsive design (mobile-first)
+- Smooth scrolling navigation
+- Mobile menu toggle
+- WhatsApp integration button
+- Real-time form validation
+- SEO-optimized content
+- Accessibility compliant
+
+## Content Strategy
+
+The website emphasizes:
+- Trust and reliability
+- Comprehensive service offerings
+- Technology and transparency
+- SEZ expertise
+- Customer testimonials
+- Easy quote request process
+

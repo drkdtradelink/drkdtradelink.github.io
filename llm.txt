@@ -2,7 +2,7 @@
 
 ## About This Website
 
-DRKD TRADELINK is a comprehensive logistics and freight forwarding company based in Ahmedabad, Gujarat, India. The company specializes in customs clearance, freight forwarding, road transport, and a wide range of logistics services for Indian and SEZ (Special Economic Zone) operations.
+DRKD TRADELINK is a comprehensive logistics and freight forwarding company based in Gandhidham, Gujarat, India. The company specializes in customs clearance, freight forwarding, road transport, and a wide range of logistics services for Indian and SEZ (Special Economic Zone) operations.
 
 ## Website Structure
 
@@ -43,10 +43,10 @@ DRKD TRADELINK is a comprehensive logistics and freight forwarding company based
 ## Company Information
 
 - **Name**: DRKD TRADELINK
-- **Location**: A-123, Commerce House, Ahmedabad, Gujarat, India
-- **Email**: contact@drkdtradelink.com
-- **Phone**: +91 12345 67890
-- **WhatsApp**: +91 12345 67890
+- **Location**: Ward 10 AA, Gandhidham, Gujarat, India
+- **Email**: drkdtradelink@gmail.com
+- **Phone**: +91 78600 78616
+- **WhatsApp**: +91 78600 78616
 - **Service Area**: India (with SEZ specialization)
 
 ## Key Value Propositions

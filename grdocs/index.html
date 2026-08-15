@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GR Documents Generator | DRKD Tradelink</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        /* App/UI Specific styles */
+        .no-print { display: block; }
+        .print-only { display: none; }
+        
+        /* Print Styles */
+        @media print {
+            body { 
+                background: white; 
+                margin: 0; 
+                padding: 0; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            
+            .page-break { page-break-after: always; }
+            
+            @page portrait-page {
+                size: A4 portrait;
+                margin: 0;
+            }
+            @page landscape-page {
+                size: A4 landscape;
+                margin: 0;
+            }
+            
+            .portrait-page { 
+                page: portrait-page;
+                width: 210mm; 
+                min-height: 296mm; 
+                margin: 0 auto;
+                padding: 10mm 15mm; 
+                box-sizing: border-box;
+                background: white;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .landscape-page { 
+                page: landscape-page;
+                width: 297mm; 
+                min-height: 209mm; 
+                margin: 0 auto;
+                padding: 10mm 15mm; 
+                box-sizing: border-box;
+                background: white;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+            }
+            .mt-auto { margin-top: auto; }
+
+            .letterhead-bg {
+                background-image: url('../letterhead.png') !important;
+                background-size: 100% 100% !important;
+                background-position: center center !important;
+                background-repeat: no-repeat !important;
+                padding-top: 45mm !important;
+                padding-bottom: 30mm !important;
+                min-height: 296mm !important;
+            }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #000; padding: 4px; font-size: 11px; text-align: left; }
+            th { font-weight: bold; text-align: center; }
+            h1, h2, h3, h4, h5 { margin: 0; padding: 0; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .text-justify { text-align: justify; }
+            .font-bold { font-weight: bold; }
+            .underline { text-decoration: underline; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- NO-PRINT: UI Layout -->
+    <div class="no-print container mx-auto p-6 max-w-6xl">
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8 border-t-4 border-blue-600">
+            <h1 class="text-3xl font-extrabold mb-8 text-blue-900 flex items-center">
+                <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                GR Documents Generator
+            </h1>
+            
+            <form @submit.prevent="printDocs" id="grForm">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Global Details Form -->
+                <div>
+                    <h2 class="text-xl font-bold mb-4 text-gray-700 border-b pb-2">Global / Transaction Details</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <div class="flex">
+                                <input type="date" v-model="global.date" required class="w-full p-2 border rounded-l focus:ring-blue-500 focus:border-blue-500">
+                                <button type="button" @click="setToday" class="bg-gray-200 px-3 border border-l-0 rounded-r hover:bg-gray-300 text-sm">Today</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Exchange Rate (USD to INR)</label>
+                            <input type="number" step="0.01" v-model="global.exchangeRate" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                            <input type="text" v-model="global.invoiceNumber" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">DC Number</label>
+                            <input type="text" v-model="global.dcNumber" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Present Duty Balance (INR)</label>
+                            <input type="number" v-model="global.presentDutyBalance" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Buyer Details Form -->
+                <div>
+                    <h2 class="text-xl font-bold mb-4 text-gray-700 border-b pb-2">Consignee (Buyer) Details</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Buyer Name</label>
+                            <input type="text" v-model="global.buyerName" placeholder="M/S RUBY SHIPPING" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Buyer Address</label>
+                            <textarea v-model="global.buyerAddress" rows="2" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Buyer GSTIN</label>
+                            <input type="text" v-model="global.buyerGSTIN" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Warehouse Code</label>
+                            <input type="text" v-model="global.warehouseCode" placeholder="e.g. IXY1S004" required class="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dynamic Item Rows -->
+            <div>
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="text-xl font-bold text-gray-700">Item Details</h2>
+                    <button @click="addItem" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Add Item
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left bg-gray-50 rounded shadow-sm mb-4">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="p-2 text-sm border-none">Item Name</th>
+                                <th class="p-2 text-sm border-none">Type</th>
+                                <th class="p-2 text-sm border-none">Qty (Cases)</th>
+                                <th class="p-2 text-sm border-none">Packing</th>
+                                <th class="p-2 text-sm border-none">Price/Case (USD)</th>
+                                <th class="p-2 text-sm border-none">BE Details</th>
+                                <th class="p-2 text-sm border-none">Bond Details</th>
+                                <th class="p-2 text-sm border-none">Bal. In Bond</th>
+                                <th class="p-2 text-sm border-none">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, index) in items" :key="index" class="border-b bg-white">
+                                <td class="p-2 border-none"><input type="text" v-model="item.item" required class="w-32 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none">
+                                    <select v-model="item.type" class="p-1 border rounded text-sm">
+                                        <option value="Beer">Beer</option>
+                                        <option value="Alcohol/Wine">Alcohol/Wine</option>
+                                    </select>
+                                </td>
+                                <td class="p-2 border-none"><input type="number" v-model="item.qty" required min="1" class="w-20 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none"><input type="text" v-model="item.packing" required class="w-24 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none"><input type="number" step="0.01" v-model="item.pricePerCaseUSD" required min="0" class="w-24 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none"><input type="text" v-model="item.beDetails" required class="w-32 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none"><input type="text" v-model="item.bondDetails" required class="w-32 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none"><input type="text" v-model="item.balanceInBond" required class="w-24 p-1 border rounded text-sm"></td>
+                                <td class="p-2 border-none text-center">
+                                    <button @click="removeItem(index)" class="text-red-500 hover:text-red-700">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="items.length === 0">
+                                <td colspan="9" class="p-4 text-center text-gray-500">No items added. Click 'Add Item' to start.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Real-time Summaries & Actions -->
+            <div class="bg-blue-50 p-6 rounded-lg border border-blue-100 flex flex-col md:flex-row justify-between items-center mt-6">
+                <div class="flex space-x-6 text-sm text-gray-800">
+                    <div>
+                        <p class="text-gray-500">Total Cases</p>
+                        <p class="font-bold text-lg">{{ totals.cases }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Total Assessable (INR)</p>
+                        <p class="font-bold text-lg">{{ totals.assessable.toFixed(2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Total Duty (INR)</p>
+                        <p class="font-bold text-lg text-red-600">{{ totals.duty.toFixed(2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Balance Duty (INR)</p>
+                        <p class="font-bold text-lg" :class="totals.balanceDutyAmount < 0 ? 'text-red-600' : 'text-green-600'">{{ totals.balanceDutyAmount.toFixed(2) }}</p>
+                    </div>
+                </div>
+                <button type="submit" class="mt-4 md:mt-0 bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-md transform hover:scale-105 transition duration-200 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Generate GR Documents
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- PRINT TEMPLATES -->
+    <div class="print-only">
+        
+        <!-- Document 1: GR Front Page -->
+        <div class="landscape-page page-break" style="font-size: 11px;">
+            <div class="flex justify-between font-bold mb-2">
+                <span>G.R FORM NO: __________________</span>
+                <span>DATED: {{ global.date }}</span>
+            </div>
+            <div class="flex justify-between font-bold mb-4">
+                <div class="w-1/2">
+                    WAREHOUSE CODE: IXYS021<br>
+                    DRKD TRADELINK LLP
+                </div>
+                <div class="w-1/2 text-right">
+                    WAREHOUSE CODE: {{ global.warehouseCode || '_____________' }}<br>
+                    M/S {{ global.buyerName.toUpperCase() }}
+                </div>
+            </div>
+            <h3 class="text-center font-bold mb-1">PART - 1</h3>
+            <h3 class="text-center font-bold mb-4">FORM FOR TRANSFER OF GOODS FROM A WAREHOUSE</h3>
+            <table class="w-full mb-8">
+                <thead>
+                    <tr>
+                        <th colspan="1">IMPORT DETAILS</th>
+                        <th colspan="2">DETAILS OF WAREHOUSING</th>
+                        <th colspan="9">GOODS</th>
+                    </tr>
+                    <tr>
+                        <th>BE NO & DATE</th>
+                        <th>BOND NO & DATE</th>
+                        <th>WAREHOUSE CODE & ADDRESS</th>
+                        <th>SR.NO</th>
+                        <th>ITEM</th>
+                        <th>QTY</th>
+                        <th>PACKING</th>
+                        <th>VALUE IN USD</th>
+                        <th>ASS VALUE (INR)</th>
+                        <th>DUTY AMOUNT (INR)</th>
+                        <th>CONSIGNEE WAREHOUSE CODE & ADDRESS</th>
+                        <th>CUSTOM STATION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item, index) in computedItems" :key="item.srNo">
+                        <td v-if="index === 0" :rowspan="computedItems.length" class="align-top border-t">{{ item.beDetails }}</td>
+                        <td v-if="index === 0" :rowspan="computedItems.length" class="align-top border-t">{{ item.bondDetails }}</td>
+                        <td v-if="index === 0" :rowspan="computedItems.length" class="align-top border-t">
+                            <b>{{ global.warehouseCode }}</b><br>
+                            DRKD TRADELINK LLP
+                        </td>
+                        <td class="text-center">{{ item.srNo }}</td>
+                        <td>{{ item.item }}</td>
+                        <td class="text-center">{{ item.qty }} Case</td>
+                        <td>{{ item.packing }}</td>
+                        <td class="text-right">{{ item.usdValue.toFixed(2) }}</td>
+                        <td class="text-right">{{ item.assessableValueInr.toFixed(2) }}</td>
+                        <td class="text-right">{{ item.dutyAmountInr.toFixed(2) }}</td>
+                        <td v-if="index === 0" :rowspan="computedItems.length" class="align-top border-t">
+                            {{ global.buyerName }}<br>
+                            <span style="white-space: pre-line">{{ global.buyerAddress }}</span>
+                        </td>
+                        <td v-if="index === 0" :rowspan="computedItems.length" class="align-top border-t">
+                            BOND C.H.KANDLA.
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="text-right font-bold border-none">TOTAL</td>
+                        <td class="text-center font-bold">{{ totals.cases }} Case</td>
+                        <td class="border-none"></td>
+                        <td class="text-right font-bold border-none">{{ totals.usd.toFixed(2) }}</td>
+                        <td class="text-right font-bold border-none">{{ totals.assessable.toFixed(2) }}</td>
+                        <td class="text-right font-bold border-none">{{ totals.duty.toFixed(2) }}</td>
+                        <td colspan="2" class="border-none"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="12" class="font-bold border-none">EXCHANGE RATE : {{ global.exchangeRate }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="flex justify-between mt-auto px-8 w-full" style="page-break-inside: avoid;">
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">SUPERINTENDENT (BOND)<br>(SIGNATURE WITH SEAL)</p>
+                </div>
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">FOR DRKD TRADELINK LLP<br>AUTHORISED SIGNATORY</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document 2: GR Back Page -->
+        <div class="landscape-page page-break" style="font-size: 11px;">
+            <div class="flex justify-between font-bold mb-4">
+                <span>GR.FORM NO. __________________</span>
+                <span>DATED. {{ global.date }}</span>
+            </div>
+            <h3 class="text-center font-bold mb-4">PART - 2</h3>
+            <table class="w-full mb-8">
+                <thead>
+                    <tr>
+                        <th colspan="4">DETAILS OF DISPATCH OF GOODS</th>
+                        <th colspan="3">DETAILS OF RECEIPT OF GOODS</th>
+                    </tr>
+                    <tr>
+                        <th style="width: 20%;">Registration No. & details of mean of Transport</th>
+                        <th style="width: 15%;">Date & Time of Removal</th>
+                        <th style="width: 15%;">Container No.</th>
+                        <th style="width: 15%;">One Time Lock No.</th>
+                        <th style="width: 15%;">Date & Time of receipt</th>
+                        <th style="width: 10%;">Whether goods match with details in Part 1</th>
+                        <th style="width: 10%;">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="height: 150px;">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="flex justify-between mt-24 px-8" style="page-break-inside: avoid;">
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">For DRKD TRADELINK LLP</p>
+                    <p>Authorised Signatory</p>
+                </div>
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">P.O (BOND)</p>
+                    <p>(Signature with Seal)</p>
+                </div>
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">For M/S {{ global.buyerName.toUpperCase() }}</p>
+                    <p>Authorised Signatory</p>
+                </div>
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">P.O (BOND)</p>
+                    <p>(Signature with seal)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document 3: Duty Calculation -->
+        <div class="landscape-page page-break">
+            <h3 class="text-center font-bold underline mb-4 text-sm">DUTY CALCULATION FOR GR FORM NO _________ (EX: 1USD = {{ global.exchangeRate }})</h3>
+            <table class="w-full mb-8">
+                <thead>
+                    <tr>
+                        <th>SR.NO</th>
+                        <th>ITEM</th>
+                        <th>QTY IN CASE</th>
+                        <th>PACKING</th>
+                        <th>ASSESSABLE VALUE IN INR / VALUE IN USD</th>
+                        <th>DUTY %</th>
+                        <th>DUTY VALUE IN INR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in computedItems" :key="item.srNo">
+                        <td class="text-center">{{ item.srNo }}</td>
+                        <td>{{ item.item }}</td>
+                        <td class="text-center">{{ item.qty }}</td>
+                        <td>{{ item.packing }}</td>
+                        <td class="text-right">{{ item.assessableValueInr.toFixed(2) }} / {{ item.usdValue.toFixed(2) }}</td>
+                        <td class="text-center">{{ item.dutyPercentageStr }}</td>
+                        <td class="text-right">{{ item.dutyAmountInr.toFixed(2) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" class="text-right font-bold">TOTAL</td>
+                        <td class="text-center font-bold">{{ totals.cases }}</td>
+                        <td></td>
+                        <td class="text-right font-bold">{{ totals.assessable.toFixed(2) }} / {{ totals.usd.toFixed(2) }}</td>
+                        <td></td>
+                        <td class="text-right font-bold">{{ totals.duty.toFixed(2) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Document 4: GR Submission Letter -->
+        <div class="portrait-page letterhead-bg page-break" style="font-size: 13px;">
+            <div class="text-right mb-4">
+                <strong>DATE:</strong> {{ global.date }}
+            </div>
+            <div class="mb-4">
+                <p>To,</p>
+                <p>The A C of Customs (BOND),</p>
+                <p>Custom House</p>
+                <p>Kandla.</p>
+            </div>
+            <div class="mb-4 font-bold">
+                <p>Sub.: Submission of GR FORM</p>
+            </div>
+            <div class="mb-4">
+                <p>Dear Sir,</p>
+                <p class="mt-2 text-justify">
+                    We have received a Buyer Order Form from <strong>M/s {{ global.buyerName }}, {{ global.buyerAddress }}</strong> for items as below: -
+                </p>
+            </div>
+            
+            <table class="w-full mb-6 text-center">
+                <thead>
+                    <tr>
+                        <th>SR NO</th>
+                        <th>DESCRIPTION</th>
+                        <th>QUANTITY</th>
+                        <th>GOOD RECEIVED BOND NO</th>
+                        <th>BOND BALANCE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in computedItems" :key="item.srNo">
+                        <td>{{ item.srNo }}</td>
+                        <td>{{ item.item }}</td>
+                        <td>{{ item.qty }} Case</td>
+                        <td>
+                            {{ item.beDetails }}<br>
+                            {{ item.bondDetails }}
+                        </td>
+                        <td>{{ item.balanceInBond }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="mb-16">
+                <p>In this regard we are submitting herewith GR No ______________ Dt: {{ global.date }} along with below documents.</p>
+                <p class="mt-2 ml-4">1. Buyer Order Form.</p>
+                <p class="mt-2">Kindly grant our request to transfer the goods as per Buyer Order Form on bond-to-bond basis.</p>
+                <p class="mt-4">Yours faithfully,</p>
+            </div>
+            
+            <div class="flex justify-between mt-auto" style="page-break-inside: avoid;">
+                <div>
+                    <p class="font-bold">For DRKD TRADELINK LLP</p>
+                    <p class="mt-16">(Authorized Signatory)</p>
+                </div>
+                <div>
+                    <p>Pls Attend: (P.O) Shri _______________</p>
+                    <p class="mt-16">Superintendent (Bond)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document 5: Notesheet -->
+        <div class="portrait-page page-break" style="font-size: 13px; padding-top: 25mm;">
+            <div class="mb-6">
+                <p class="mb-2"><strong>Submitted Please: -</strong></p>
+                <p class="mb-2">Kindly Pursue G.R Form No - _______________ Dated: {{ global.date }} for Bond-to-Bond transfer filed manually, received from M/s . <strong>DRKD TRADELINK LLP</strong> , GANDHIDHAM.</p>
+                <p class="mb-4">They have filed a G.R Form for Bond store transfer to <strong>M/s {{ global.buyerName }}, {{ global.buyerAddress }}</strong>.</p>
+                
+                <p class="mb-2 underline">DETAILS:</p>
+                <table class="w-2/3 mb-4" style="border: none;">
+                    <tr>
+                        <td style="border: none; padding: 2px;">PRESENT DUTY BALANCE:</td>
+                        <td style="border: none; padding: 2px; font-weight: bold;">₹ {{ global.presentDutyBalance }} /-</td>
+                    </tr>
+                    <tr>
+                        <td style="border: none; padding: 2px;">PRESENT GR DUTY AMOUNT:</td>
+                        <td style="border: none; padding: 2px; font-weight: bold;">₹ {{ totals.duty.toFixed(2) }} /-</td>
+                    </tr>
+                    <tr>
+                        <td style="border: none; padding: 2px;">BALANCE DUTY AMOUNT:</td>
+                        <td style="border: none; padding: 2px; font-weight: bold;">₹ {{ totals.balanceDutyAmount.toFixed(2) }} /-</td>
+                    </tr>
+                </table>
+                
+                <p class="mb-6">G.R Form No: _______________ Dated: {{ global.date }} is put up for perusal, approval and Signature Please.</p>
+            </div>
+            
+            <table class="w-full mb-6">
+                <thead>
+                    <tr>
+                        <th>SR NO</th>
+                        <th>DESCRIPTION</th>
+                        <th>QUANTITY</th>
+                        <th>GOODS RECEIVED BOND NO</th>
+                        <th>BOND BALANCE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in computedItems" :key="item.srNo">
+                        <td class="text-center">{{ item.srNo }}</td>
+                        <td>{{ item.item }}</td>
+                        <td class="text-center">{{ item.qty }} Case</td>
+                        <td>
+                            {{ item.beDetails }}<br>
+                            {{ item.bondDetails }}
+                        </td>
+                        <td>{{ item.balanceInBond }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="flex justify-between mt-auto px-8" style="page-break-inside: avoid;">
+                <div>(P.O Bond)</div>
+                <div class="text-center">(Supdt Bond)</div>
+                <div class="text-right">DC / AC (Bond)</div>
+            </div>
+        </div>
+
+        <!-- Document 6: Invoice -->
+        <div class="portrait-page letterhead-bg page-break" style="font-size: 13px;">
+            <h2 class="text-center font-bold text-xl mb-4 underline">INVOICE</h2>
+            
+            <table class="w-full mb-4">
+                <tr>
+                    <td class="w-1/2 align-top border-none" style="padding: 2px;">
+                        <strong>From:</strong><br>
+                        <strong>DRKD TRADELINK LLP</strong><br>
+                        IEC NO: AAXFD9284E<br>
+                        GSTIN: 24AAXFD9284E1ZW
+                    </td>
+                    <td class="w-1/2 align-top border-none text-right" style="padding: 2px;">
+                        <strong>Invoice No:</strong> {{ global.invoiceNumber }}<br>
+                        <strong>Date:</strong> {{ global.date }}<br>
+                        <strong>DELIVERY CHALLAN NO:</strong> {{ global.dcNumber }}<br>
+                        <strong>DC Date:</strong> {{ global.date }}<br>
+                        <strong>USD EXCHANGE RATE:</strong> 1 USD = {{ global.exchangeRate }} INR
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="align-top border-none" style="padding: 2px; padding-top: 15px;">
+                        <strong>CONSIGNEE:</strong><br>
+                        <strong>M/S {{ global.buyerName.toUpperCase() }}</strong><br>
+                        GSTIN: {{ global.buyerGSTIN || '_____________________' }}<br>
+                        <span style="white-space: pre-line;">{{ global.buyerAddress }}</span>
+                    </td>
+                </tr>
+            </table>
+            
+            <table class="w-full mb-4">
+                <thead>
+                    <tr>
+                        <th>SR.NO</th>
+                        <th>DESCRIPTION</th>
+                        <th>PACKING</th>
+                        <th>UNIT</th>
+                        <th>QTY</th>
+                        <th>RATE USD</th>
+                        <th>AMOUNT (USD)</th>
+                        <th>AMOUNT (INR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in computedItems" :key="item.srNo">
+                        <td class="text-center">{{ item.srNo }}</td>
+                        <td>{{ item.item }}</td>
+                        <td>{{ item.packing }}</td>
+                        <td class="text-center">Cases</td>
+                        <td class="text-center">{{ item.qty }}</td>
+                        <td class="text-right">{{ item.pricePerCaseUSD.toFixed(2) }}</td>
+                        <td class="text-right">{{ item.usdValue.toFixed(2) }}</td>
+                        <td class="text-right">{{ item.assessableValueInr.toFixed(2) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-right font-bold">GRAND TOTAL</td>
+                        <td class="text-center font-bold">{{ totals.cases }}</td>
+                        <td></td>
+                        <td class="text-right font-bold">{{ totals.usd.toFixed(2) }}</td>
+                        <td class="text-right font-bold">{{ totals.assessable.toFixed(2) }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="8">
+                            <strong>Total Amount (USD) in Words:</strong> <span class="uppercase">{{ numberToWords(totals.usd) }} US DOLLARS ONLY</span><br>
+                            <strong>Total Amount (INR) in Words:</strong> <span class="uppercase">{{ numberToWords(totals.assessable) }} RUPEES ONLY</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="mb-4 text-xs">
+                <strong>Narration:</strong> Being Bond Store items transferred Bond to Bond Vide GR No: _________ DtD: _________ Job No: ____________
+            </div>
+            
+            <div class="flex justify-between mt-auto" style="page-break-inside: avoid;">
+                <div class="w-1/2 p-2" style="border: 1px solid #000;">
+                    <strong>Company's Bank Details</strong><br>
+                    Bank Name : ICICI BANK<br>
+                    A/c Holder Name : DRKD TRADELINK LLP<br>
+                    A/c No : 244205001549<br>
+                    Branch : Adipur Branch<br>
+                    IFSC: ICIC0002442
+                </div>
+                <div class="w-1/2 text-right">
+                    <p class="font-bold">FOR DRKD TRADELINK LLP</p>
+                    <p class="mt-16">AUTHORISED SIGNATORY</p>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-justify">
+                <strong>Declaration:</strong><br>
+                In case of any discrepancy on above invoice amount please notify within 5 working days. If not, this invoice will be presumed to be in order. Payment Terms: Cash/Cheque on Delivery/Submission of Invoice.
+            </div>
+        </div>
+
+        <!-- Document 7: Delivery Challan -->
+        <div class="portrait-page letterhead-bg" style="font-size: 13px;">
+            <div class="text-right mb-2">1</div>
+            <h2 class="text-center font-bold text-xl mb-4 underline">Delivery Challan</h2>
+            
+            <table class="w-full mb-4">
+                <tr>
+                    <td class="w-1/2 align-top border-none" style="padding: 2px;">
+                        <strong>From:</strong><br>
+                        <strong>DRKD TRADELINK LLP</strong><br>
+                        IEC NO: AAXFD9284E<br>
+                        GSTIN: 24AAXFD9284E1ZW<br>
+                        SB NO:
+                    </td>
+                    <td class="w-1/2 align-top border-none text-right" style="padding: 2px;">
+                        <strong>Invoice No:</strong> {{ global.invoiceNumber }}<br>
+                        <strong>Date:</strong> {{ global.date }}<br>
+                        <strong>DELIVERY CHALLAN NO:</strong> {{ global.dcNumber }}<br>
+                        <strong>DC Date:</strong> {{ global.date }}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="align-top border-none" style="padding: 2px; padding-top: 15px;">
+                        <strong>CONSIGNEE:</strong><br>
+                        <strong>M/S {{ global.buyerName.toUpperCase() }}</strong><br>
+                        GSTIN: {{ global.buyerGSTIN || '_____________________' }}<br>
+                        <span style="white-space: pre-line;">{{ global.buyerAddress }}</span>
+                    </td>
+                </tr>
+            </table>
+            
+            <table class="w-full mb-8">
+                <thead>
+                    <tr>
+                        <th>SR.NO</th>
+                        <th>DESCRIPTION</th>
+                        <th>PACKING</th>
+                        <th>UNIT</th>
+                        <th>QTY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in computedItems" :key="item.srNo">
+                        <td class="text-center">{{ item.srNo }}</td>
+                        <td>{{ item.item }}</td>
+                        <td>{{ item.packing }}</td>
+                        <td class="text-center">Cases</td>
+                        <td class="text-center">{{ item.qty }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-right font-bold">TOTAL QTY</td>
+                        <td class="text-center font-bold">{{ totals.cases }} Cases</td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="mb-4 text-xs">
+                <strong>Narration:</strong> Being Bond Store items transferred Bond to Bond Vide GR No: _________ DtD: _________ Job No: ____________
+            </div>
+
+            <div class="flex justify-between mt-auto" style="page-break-inside: avoid;">
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">FOR DRKD TRADELINK LLP</p>
+                    <p class="mt-4">AUTHORISED SIGNATORY</p>
+                </div>
+                <div class="text-center">
+                    <p class="mb-16">_______________________</p>
+                    <p class="font-bold">M/S {{ global.buyerName.toUpperCase() }}</p>
+                    <p class="mt-4">AUTHORISED SIGNATORY</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed } = Vue;
+
+    const numberToWords = (amount) => {
+        const num = Math.floor(amount);
+        if (num === 0) return 'Zero';
+        const a = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+        const b = ['', '', 'Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+        const numStr = num.toString();
+        if (numStr.length > 9) return 'Overflow';
+        const n = ('000000000' + numStr).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+        if (!n) return ''; 
+        let str = '';
+        str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + ' Crore ' : '';
+        str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + ' Lakh ' : '';
+        str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + ' Thousand ' : '';
+        str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + ' Hundred ' : '';
+        str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+        return str.trim();
+    };
+
+    createApp({
+        setup() {
+            const global = ref({
+                date: '',
+                exchangeRate: 0,
+                presentDutyBalance: 0,
+                buyerName: '',
+                buyerAddress: '',
+                buyerGSTIN: '',
+                warehouseCode: '',
+                invoiceNumber: '',
+                dcNumber: ''
+            });
+
+            const items = ref([
+                { item: '', qty: 0, packing: '', pricePerCaseUSD: 0, type: 'Beer', beDetails: '', bondDetails: '', balanceInBond: '' }
+            ]);
+
+            const computedItems = computed(() => {
+                return items.value.map((item, index) => {
+                    const usdValue = Number(item.qty) * Number(item.pricePerCaseUSD);
+                    const assessableValueInr = usdValue * Number(global.value.exchangeRate);
+                    const dutyPercentage = item.type === 'Beer' ? 1.10 : 1.50;
+                    const dutyAmountInr = assessableValueInr * dutyPercentage;
+                    
+                    return {
+                        ...item,
+                        srNo: index + 1,
+                        usdValue,
+                        assessableValueInr,
+                        dutyPercentageStr: (dutyPercentage * 100).toFixed(2) + '%',
+                        dutyAmountInr
+                    };
+                });
+            });
+
+            const totals = computed(() => {
+                let cases = 0, usd = 0, assessable = 0, duty = 0;
+                computedItems.value.forEach(item => {
+                    cases += Number(item.qty);
+                    usd += item.usdValue;
+                    assessable += item.assessableValueInr;
+                    duty += item.dutyAmountInr;
+                });
+                const balanceDutyAmount = Number(global.value.presentDutyBalance) - duty;
+                return { cases, usd, assessable, duty, balanceDutyAmount };
+            });
+
+            const addItem = () => {
+                items.value.push({ item: '', qty: 0, packing: '', pricePerCaseUSD: 0, type: 'Beer', beDetails: '', bondDetails: '', balanceInBond: '' });
+            };
+
+            const removeItem = (index) => {
+                if (items.value.length > 1) {
+                    items.value.splice(index, 1);
+                } else {
+                    alert('You must have at least one item.');
+                }
+            };
+
+            const printDocs = () => {
+                window.print();
+            };
+
+            return { global, items, computedItems, totals, addItem, removeItem, printDocs, numberToWords };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

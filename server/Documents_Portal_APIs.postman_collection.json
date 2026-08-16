@@ -1,0 +1,384 @@
+{
+	"info": {
+		"_postman_id": "4e723de4-91e8-46d5-bb90-e7f0980fa2a9",
+		"name": "DRKD Documents Portal APIs",
+		"description": "Collection of APIs for the DRKD Tradelink Multi-Tenant Documents Portal.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"manager@drkdtradelink.com\",\n    \"password\": \"DRKDManager#2026!\",\n    \"subdomain\": \"drkd\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Stock",
+			"item": [
+				{
+					"name": "List Stock",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/stock",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"stock"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Stock Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"commodityName\": \"Corona Extra Beer\",\n    \"commodityType\": \"Beer\",\n    \"beDetails\": \"BE/12345/12-04-2026\",\n    \"bondDetails\": \"BOND/2026/089\",\n    \"pricePerCaseUSD\": 12.50,\n    \"totalQuantity\": 300,\n    \"packing\": \"24 Bottles x 330ml\",\n    \"dutyPercentage\": 110,\n    \"presentDutyBalance\": 500000,\n    \"bondExpiryDate\": \"2027-04-12\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/stock",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"stock"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Parties",
+			"item": [
+				{
+					"name": "List Parties",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/parties",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"parties"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Party",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"M/S RUBY SHIPPING\",\n    \"address\": \"PLOT NO. 45, GIDC SECTOR 3, ADIPUR (KUTCH), GUJARAT\",\n    \"city\": \"Adipur\",\n    \"state\": \"Gujarat\",\n    \"gstin\": \"24AAACR1234F1Z0\",\n    \"warehouseCode\": \"IXY1S004\",\n    \"phone\": \"+91 98765 43210\",\n    \"email\": \"ruby.shipping@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/parties",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"parties"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GR Docs",
+			"item": [
+				{
+					"name": "List GR Documents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/gr-docs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"gr-docs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create GR Draft",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2026-08-15\",\n    \"exchangeRate\": 84.50,\n    \"invoiceNumber\": \"INV-999\",\n    \"dcNumber\": \"DC-999\",\n    \"presentDutyBalance\": 1000000,\n    \"partyId\": \"YOUR_PARTY_ID\",\n    \"items\": [\n        {\n            \"stockItemId\": \"YOUR_STOCK_ITEM_ID\",\n            \"qty\": 10\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/gr-docs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"gr-docs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Finalize Document Package",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/gr-docs/YOUR_GR_TX_ID/generate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"gr-docs",
+								"YOUR_GR_TX_ID",
+								"generate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Preview HTML Document",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Subdomain",
+								"value": "drkd",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/gr-docs/YOUR_GR_TX_ID/preview/gr-front",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"gr-docs",
+								"YOUR_GR_TX_ID",
+								"preview",
+								"gr-front"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "YOUR_JWT_TOKEN",
+			"type": "string"
+		}
+	]
+}

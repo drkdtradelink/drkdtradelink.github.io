@@ -212,6 +212,39 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
       }
     });
 
+    // Audit log tracking
+    const changes = [];
+    const fieldsToTrack = [
+      'legalName', 'displayName', 'address', 'city', 'state', 'country', 'postalCode',
+      'phone', 'email', 'gstin', 'iec', 'warehouseCode', 'bankName', 'bankAccount',
+      'bankIfsc', 'bankBranch', 'customStation', 'status'
+    ];
+    fieldsToTrack.forEach(field => {
+      if (req.body[field] !== undefined && String(req.body[field]) !== String(existingCompany[field] || '')) {
+        changes.push({
+          field,
+          oldVal: existingCompany[field] || '',
+          newVal: req.body[field] || ''
+        });
+      }
+    });
+
+    if (changes.length > 0) {
+      await prisma.auditLog.create({
+        data: {
+          companyId: existingCompany.id,
+          userId: req.user.id,
+          userName: req.user.name,
+          userRole: req.user.role,
+          entityType: 'Company',
+          entityId: existingCompany.id,
+          entityName: updated.displayName,
+          action: 'UPDATE',
+          changes: JSON.stringify(changes)
+        }
+      });
+    }
+
     res.json(updated);
   } catch (error) {
     console.error('Update company error:', error);

@@ -172,6 +172,35 @@ router.put('/:id', requireRole(['admin', 'manager']), async (req, res) => {
       data
     });
 
+    // Audit log tracking
+    const changes = [];
+    const fieldsToTrack = ['name', 'email', 'phone', 'role', 'status', 'companyId'];
+    fieldsToTrack.forEach(field => {
+      if (req.body[field] !== undefined && String(req.body[field]) !== String(existingUser[field] || '')) {
+        changes.push({
+          field,
+          oldVal: existingUser[field] || '',
+          newVal: req.body[field] || ''
+        });
+      }
+    });
+
+    if (changes.length > 0) {
+      await prisma.auditLog.create({
+        data: {
+          companyId: existingUser.companyId,
+          userId: req.user.id,
+          userName: req.user.name,
+          userRole: req.user.role,
+          entityType: 'User',
+          entityId: existingUser.id,
+          entityName: updated.name,
+          action: 'UPDATE',
+          changes: JSON.stringify(changes)
+        }
+      });
+    }
+
     const { passwordHash, ...sanitized } = updated;
     res.json(sanitized);
   } catch (error) {

@@ -112,37 +112,66 @@ router.get('/next-numbers', async (req, res) => {
       return res.status(400).json({ error: 'companyId is required.' });
     }
 
-    const lastTx = await prisma.gRTransaction.findFirst({
+    const allTxs = await prisma.gRTransaction.findMany({
       where: { companyId: targetCompanyId },
-      orderBy: { createdAt: 'desc' }
+      select: { invoiceNumber: true, dcNumber: true }
     });
 
-    let nextInvoiceNumber = 'INV-001';
-    let nextDcNumber = 'DC-001';
+    let maxInvoiceNum = 0;
+    let invoicePrefix = 'INV-';
+    let invoicePadLen = 3;
 
-    if (lastTx) {
-      const invMatch = lastTx.invoiceNumber.match(/^([A-Za-z\-]+)?(\d+)$/);
-      if (invMatch) {
-        const prefix = invMatch[1] || 'INV-';
-        const num = parseInt(invMatch[2]) + 1;
-        const padLen = invMatch[2].length;
-        nextInvoiceNumber = `${prefix}${String(num).padStart(padLen, '0')}`;
-      } else {
-        const num = parseInt(lastTx.invoiceNumber);
-        nextInvoiceNumber = isNaN(num) ? 'INV-001' : String(num + 1);
+    let maxDcNum = 0;
+    let dcPrefix = 'DC-';
+    let dcPadLen = 3;
+
+    for (const tx of allTxs) {
+      if (tx.invoiceNumber) {
+        const invMatch = tx.invoiceNumber.match(/^([A-Za-z\-]+)?(\d+)$/);
+        if (invMatch) {
+          const num = parseInt(invMatch[2]);
+          if (num > maxInvoiceNum) {
+            maxInvoiceNum = num;
+            invoicePrefix = invMatch[1] || 'INV-';
+            invoicePadLen = invMatch[2].length;
+          }
+        } else {
+          const num = parseInt(tx.invoiceNumber);
+          if (!isNaN(num) && num > maxInvoiceNum) {
+            maxInvoiceNum = num;
+            invoicePrefix = '';
+            invoicePadLen = 0;
+          }
+        }
       }
 
-      const dcMatch = lastTx.dcNumber.match(/^([A-Za-z\-]+)?(\d+)$/);
-      if (dcMatch) {
-        const prefix = dcMatch[1] || 'DC-';
-        const num = parseInt(dcMatch[2]) + 1;
-        const padLen = dcMatch[2].length;
-        nextDcNumber = `${prefix}${String(num).padStart(padLen, '0')}`;
-      } else {
-        const num = parseInt(lastTx.dcNumber);
-        nextDcNumber = isNaN(num) ? 'DC-001' : String(num + 1);
+      if (tx.dcNumber) {
+        const dcMatch = tx.dcNumber.match(/^([A-Za-z\-]+)?(\d+)$/);
+        if (dcMatch) {
+          const num = parseInt(dcMatch[2]);
+          if (num > maxDcNum) {
+            maxDcNum = num;
+            dcPrefix = dcMatch[1] || 'DC-';
+            dcPadLen = dcMatch[2].length;
+          }
+        } else {
+          const num = parseInt(tx.dcNumber);
+          if (!isNaN(num) && num > maxDcNum) {
+            maxDcNum = num;
+            dcPrefix = '';
+            dcPadLen = 0;
+          }
+        }
       }
     }
+
+    const nextInvoiceNumber = maxInvoiceNum > 0
+      ? `${invoicePrefix}${String(maxInvoiceNum + 1).padStart(invoicePadLen, '0')}`
+      : 'INV-001';
+
+    const nextDcNumber = maxDcNum > 0
+      ? `${dcPrefix}${String(maxDcNum + 1).padStart(dcPadLen, '0')}`
+      : 'DC-001';
 
     res.json({ nextInvoiceNumber, nextDcNumber });
   } catch (error) {
@@ -701,6 +730,7 @@ router.put('/:id', async (req, res) => {
  */
 router.post('/:id/generate', async (req, res) => {
   try {
+    const { force } = req.query;
     const whereClause = { id: req.params.id, status: 'draft' };
     if (req.company) {
       whereClause.companyId = req.company.id;
@@ -715,7 +745,8 @@ router.post('/:id/generate', async (req, res) => {
       return res.status(404).json({ error: 'Draft GR document not found or already finalized.' });
     }
 
-    // 1. Validate Stock quantities
+    // 1. Detect Changes & Validate Stock quantities
+    const changes = [];
     for (const item of transaction.items) {
       const stock = await prisma.stockItem.findFirst({
         where: { id: item.stockItemId, companyId: transaction.companyId }
@@ -730,9 +761,47 @@ router.post('/:id/generate', async (req, res) => {
           error: `Insufficient stock for ${item.item}. Requested: ${item.qty}, Available: ${stock.remainingQuantity}`
         });
       }
+
+      // Check if stock has changed since draft was saved
+      const snapshot = JSON.parse(transaction.calculationSnapshot || '{}');
+      const snapItem = snapshot.items?.find(i => i.stockItemId === item.stockItemId);
+      if (snapItem) {
+        const snapRemaining = parseInt(snapItem.balanceInBond); // extracts number
+        if (!isNaN(snapRemaining) && stock.remainingQuantity !== snapRemaining) {
+          changes.push({
+            item: item.item,
+            field: 'Available Quantity',
+            oldVal: `${snapRemaining} ${stock.unit || 'Cases'}`,
+            newVal: `${stock.remainingQuantity} ${stock.unit || 'Cases'}`
+          });
+        }
+      }
     }
 
-    // 2. Finalize stock
+    // Also check if company present duty balance has changed
+    const snapDutyBalance = parseFloat(transaction.presentDutyBalance);
+    const liveStockItems = await prisma.stockItem.findMany({
+      where: { companyId: transaction.companyId }
+    });
+    const liveDutyBalance = liveStockItems.reduce((sum, s) => sum + s.presentDutyBalance, 0);
+    if (Math.abs(liveDutyBalance - snapDutyBalance) > 1.0) {
+      changes.push({
+        item: 'Company Duty Stock',
+        field: 'Present Duty Balance (INR)',
+        oldVal: `₹ ${snapDutyBalance.toFixed(2)}`,
+        newVal: `₹ ${liveDutyBalance.toFixed(2)}`
+      });
+    }
+
+    if (changes.length > 0 && force !== 'true') {
+      return res.json({
+        warning: true,
+        message: 'Stock or duty balance values have changed since this draft was saved due to another finalized transaction.',
+        changes
+      });
+    }
+
+    // 2. Finalize stock (Deduct quantity AND present duty balance)
     await prisma.$transaction(async (tx) => {
       for (const item of transaction.items) {
         await tx.stockItem.update({
@@ -740,6 +809,9 @@ router.post('/:id/generate', async (req, res) => {
           data: {
             remainingQuantity: {
               decrement: item.qty
+            },
+            presentDutyBalance: {
+              decrement: item.dutyAmountInr
             }
           }
         });
@@ -758,6 +830,66 @@ router.post('/:id/generate', async (req, res) => {
   } catch (error) {
     console.error('Finalize GR error:', error);
     res.status(500).json({ error: 'Failed to finalize GR document package.' });
+  }
+});
+
+/**
+ * @route POST /api/gr-docs/:id/cancel
+ * @desc Cancel a finalized GR transaction (reverts stock/duty changes)
+ */
+router.post('/:id/cancel', async (req, res) => {
+  try {
+    const whereClause = { id: req.params.id, status: 'generated' };
+    if (req.company) {
+      whereClause.companyId = req.company.id;
+    }
+
+    const transaction = await prisma.gRTransaction.findFirst({
+      where: whereClause,
+      include: { items: true }
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Finalized GR document not found or already cancelled.' });
+    }
+
+    // 1. Validate cancellation permissions and 30-day time limit
+    if (req.user.role !== 'admin') {
+      const diffTime = Math.abs(new Date() - new Date(transaction.createdAt));
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 30) {
+        return res.status(400).json({ error: 'Non-admin users can only cancel documents within 30 days of creation.' });
+      }
+    }
+
+    // 2. Revert stock and duty deductions
+    await prisma.$transaction(async (tx) => {
+      for (const item of transaction.items) {
+        await tx.stockItem.update({
+          where: { id: item.stockItemId },
+          data: {
+            remainingQuantity: {
+              increment: item.qty
+            },
+            presentDutyBalance: {
+              increment: item.dutyAmountInr
+            }
+          }
+        });
+      }
+
+      await tx.gRTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: 'cancelled'
+        }
+      });
+    });
+
+    res.json({ message: 'GR document cancelled successfully and stock/duty reversed.', grNumber: transaction.grNumber });
+  } catch (error) {
+    console.error('Cancel GR error:', error);
+    res.status(500).json({ error: 'Failed to cancel GR document package.' });
   }
 });
 
@@ -795,7 +927,15 @@ router.get('/:id/preview/:doc', async (req, res) => {
 
     const party = transaction.party;
     const snap = JSON.parse(transaction.calculationSnapshot || '{}');
-    const items = snap.items || transaction.items;
+    let items = snap.items || transaction.items;
+    
+    if (docType === 'stock-list') {
+      items = await prisma.stockItem.findMany({
+        where: { companyId: transaction.companyId },
+        orderBy: { commodityName: 'asc' }
+      });
+    }
+
     const totals = snap.totals || computeTotals(items, transaction.presentDutyBalance);
 
     const html = renderDocument(docType, transaction, company, party, items, totals);

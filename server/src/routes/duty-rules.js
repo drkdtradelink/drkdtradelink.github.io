@@ -123,6 +123,35 @@ router.put('/:id', requireRole(['admin', 'manager']), async (req, res) => {
       }
     });
 
+    // Audit log tracking
+    const changes = [];
+    const fieldsToTrack = ['name', 'commodityType', 'dutyPercentage', 'status', 'formula'];
+    fieldsToTrack.forEach(field => {
+      if (req.body[field] !== undefined && String(req.body[field]) !== String(existing[field] || '')) {
+        changes.push({
+          field,
+          oldVal: existing[field] || '',
+          newVal: req.body[field] || ''
+        });
+      }
+    });
+
+    if (changes.length > 0) {
+      await prisma.auditLog.create({
+        data: {
+          companyId: existing.companyId,
+          userId: req.user.id,
+          userName: req.user.name,
+          userRole: req.user.role,
+          entityType: 'DutyRule',
+          entityId: existing.id,
+          entityName: updated.name,
+          action: 'UPDATE',
+          changes: JSON.stringify(changes)
+        }
+      });
+    }
+
     res.json(updated);
   } catch (error) {
     console.error('Update rule error:', error);

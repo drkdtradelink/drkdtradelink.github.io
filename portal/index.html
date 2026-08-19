@@ -883,8 +883,13 @@
               </div>
 
               <!-- Item selection & rows -->
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">3. Add Stock Items</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 0;">3. Add Stock Items</h3>
+                  <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted);">
+                    <input type="checkbox" v-model="hideZeroStock"> Hide zero-stock items
+                  </label>
+                </div>
                 <button type="button" @click="addGRItemRow" class="btn btn-secondary btn-sm">+ Add Item Row</button>
               </div>
 
@@ -969,8 +974,12 @@
                   Edit Draft Package
                 </button>
                 <!-- Finalize button if draft -->
-                <button v-if="selectedGRDoc?.transaction?.status === 'draft'" @click="finalizeGRDocumentPackage" class="btn btn-primary">
+                <button v-if="selectedGRDoc?.transaction?.status === 'draft'" @click="finalizeGRDocumentPackage(false)" class="btn btn-primary">
                   Finalize & Lock Document
+                </button>
+                <!-- Cancel button if generated -->
+                <button v-if="selectedGRDoc?.transaction?.status === 'generated' && canCancelGR(selectedGRDoc?.transaction)" @click="cancelGRDocumentPackage" class="btn btn-danger">
+                  Cancel GR Package
                 </button>
                 <button @click="navigate('#/gr-docs')" class="btn btn-secondary">
                   Back to List
@@ -1031,9 +1040,14 @@
         <!-- STOCK ROUTE -->
         <div v-if="currentRoute === '#/stock'">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
               <div class="card-title">Stock / Bonded Shipments Inventory</div>
-              <button type="button" @click="openCreateStockModal" class="btn btn-primary btn-sm">+ Add Stock Item</button>
+              <div style="display: flex; gap: 16px; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text);">
+                  <input type="checkbox" v-model="hideZeroStock"> Hide zero-stock items in GR dropdown
+                </label>
+                <button type="button" @click="openCreateStockModal" class="btn btn-primary btn-sm">+ Add Stock Item</button>
+              </div>
             </div>
 
             <div v-if="!allStock.length" style="padding: 40px; text-align: center; color: var(--text-muted);">
@@ -1112,38 +1126,67 @@
                     </select>
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Price per Case (USD)</label>
-                    <input type="number" step="0.01" v-model="stockForm.pricePerCaseUSD" class="form-control" required>
+                    <label class="form-label">Price per Unit (USD)</label>
+                    <input type="number" step="0.01" min="0" v-model.number="stockForm.pricePerCaseUSD" class="form-control" required>
                   </div>
                 </div>
+                <!-- Structured purchase details -->
                 <div class="form-grid">
                   <div class="form-group">
-                    <label class="form-label">BE No & Date</label>
-                    <input type="text" v-model="stockForm.beDetails" placeholder="e.g. BE/12345/12-04-2026" class="form-control" required>
+                    <label class="form-label">Purchase Type</label>
+                    <select v-model="stockForm.purchaseType" class="form-control" required>
+                      <option value="BE">Bought via BE (Bill of Entry)</option>
+                      <option value="GR">Bought via GR</option>
+                    </select>
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Bond No & Date</label>
-                    <input type="text" v-model="stockForm.bondDetails" placeholder="e.g. BOND/2026/089" class="form-control" required>
+                    <label class="form-label">BE or GR Number</label>
+                    <input type="text" v-model="stockForm.purchaseNumber" placeholder="e.g. 12345/12" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">BE or GR Date</label>
+                    <input type="date" v-model="stockForm.purchaseDate" class="form-control" required>
+                  </div>
+                </div>
+                <!-- Structured bond details -->
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Bond Number</label>
+                    <input type="text" v-model="stockForm.bondNumber" placeholder="e.g. BOND/2026/089" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Bond Date</label>
+                    <input type="date" v-model="stockForm.bondDate" class="form-control" required>
                   </div>
                 </div>
                 <div class="form-grid">
                   <div class="form-group">
                     <label class="form-label">Total Quantity</label>
-                    <input type="number" v-model="stockForm.totalQuantity" class="form-control" required>
+                    <input type="number" min="0" v-model.number="stockForm.totalQuantity" class="form-control" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Packing details</label>
                     <input type="text" v-model="stockForm.packing" placeholder="e.g. 24 Bottles x 330ml" class="form-control" required>
                   </div>
+                  <div class="form-group">
+                    <label class="form-label">Quantity Unit</label>
+                    <select v-model="stockForm.unit" class="form-control" required>
+                      <option value="Cases">Cases</option>
+                      <option value="Cartons">Cartons</option>
+                      <option value="Boxes">Boxes</option>
+                      <option value="Bottles">Bottles</option>
+                      <option value="Packs">Packs</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-grid">
                   <div class="form-group">
                     <label class="form-label">Duty Percentage (%)</label>
-                    <input type="number" step="0.1" v-model="stockForm.dutyPercentage" class="form-control" required>
+                    <input type="number" step="0.1" min="0" v-model.number="stockForm.dutyPercentage" class="form-control" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Present Duty Balance (INR)</label>
-                    <input type="number" v-model="stockForm.presentDutyBalance" class="form-control">
+                    <input type="number" step="0.01" min="0" v-model.number="stockForm.presentDutyBalance" class="form-control" required>
                   </div>
                 </div>
                 <div class="form-group">
@@ -1734,8 +1777,11 @@
         commodityName: '',
         commodityType: 'Beer',
         pricePerCaseUSD: 0,
-        beDetails: '',
-        bondDetails: '',
+        purchaseType: 'BE',
+        purchaseNumber: '',
+        purchaseDate: '',
+        bondNumber: '',
+        bondDate: '',
         totalQuantity: 0,
         packing: '',
         unit: 'Cases',
@@ -1842,6 +1888,7 @@
       // Filters refs
       const userFilterCompanyId = ref('');
       const ruleFilterCompanyId = ref('');
+      const hideZeroStock = ref(true);
 
       // Custom prompt modal state
       const promptModal = ref({
@@ -1887,9 +1934,15 @@
       });
 
       const filteredStock = computed(() => {
-        if (currentUser.value?.role !== 'admin') return allStock.value;
-        if (!grForm.value.companyId) return [];
-        return allStock.value.filter(s => s.companyId === grForm.value.companyId);
+        let list = allStock.value;
+        if (currentUser.value?.role === 'admin') {
+          if (!grForm.value.companyId) return [];
+          list = allStock.value.filter(s => s.companyId === grForm.value.companyId);
+        }
+        if (hideZeroStock.value) {
+          list = list.filter(s => s.remainingQuantity > 0);
+        }
+        return list;
       });
 
       const filteredUsers = computed(() => {
@@ -2168,18 +2221,27 @@
       // Toggles for Admin
       const toggleCompanyStatus = (company) => {
         const nextStatus = company.status === 'active' ? 'inactive' : 'active';
-        triggerConfirm(
-          'Confirm Company Status Change',
-          `Are you sure you want to set company status to ${nextStatus.toUpperCase()}?`,
-          async () => {
+        triggerPrompt({
+          title: `Confirm Company Status: ${nextStatus.toUpperCase()}`,
+          message: `Are you sure you want to set status of company "${company.displayName}" to ${nextStatus.toUpperCase()}? System Admin password required:`,
+          onConfirm: async (val, adminPassword) => {
+            if (!adminPassword) return;
             const res = await fetch(`/api/companies/${company.id}`, {
               method: 'PUT',
-              headers: getHeaders(),
+              headers: {
+                ...getHeaders(),
+                'X-Admin-Password': adminPassword
+              },
               body: JSON.stringify({ status: nextStatus })
             });
-            if (res.ok) fetchCompanies();
+            if (res.ok) {
+              fetchCompanies();
+            } else {
+              const err = await res.json();
+              alert(err.error || 'Failed to update company status.');
+            }
           }
-        );
+        });
       };
 
       const toggleUserStatus = (user) => {
@@ -2207,17 +2269,31 @@
         });
       };
 
-      const toggleRuleStatus = async (rule) => {
+      const toggleRuleStatus = (rule) => {
         const nextStatus = rule.status === 'active' ? 'inactive' : 'active';
-        const res = await fetch(`/api/duty-rules/${rule.id}`, {
-          method: 'PUT',
-          headers: getHeaders(),
-          body: JSON.stringify({ status: nextStatus })
+        triggerPrompt({
+          title: `Confirm Duty Rule Status: ${nextStatus.toUpperCase()}`,
+          message: `Are you sure you want to set status of duty rule "${rule.name}" to ${nextStatus.toUpperCase()}? System Admin password required:`,
+          onConfirm: async (val, adminPassword) => {
+            if (!adminPassword) return;
+            const res = await fetch(`/api/duty-rules/${rule.id}`, {
+              method: 'PUT',
+              headers: {
+                ...getHeaders(),
+                'X-Admin-Password': adminPassword
+              },
+              body: JSON.stringify({ status: nextStatus })
+            });
+            if (res.ok) {
+              fetchRules();
+            } else {
+              const err = await res.json();
+              alert(err.error || 'Failed to update duty rule status.');
+            }
+          }
         });
-        if (res.ok) fetchRules();
       };
 
-      // Forms Submission APIs
       const submitStockItem = async () => {
         const isEditing = !!editingStockId.value;
         const url = isEditing ? `/api/stock/${editingStockId.value}` : '/api/stock';
@@ -2232,7 +2308,23 @@
           showStockModal.value = false;
           editingStockId.value = null;
           fetchStock();
-          stockForm.value = { companyId: '', commodityName: '', commodityType: 'Beer', pricePerCaseUSD: 0, beDetails: '', bondDetails: '', totalQuantity: 0, packing: '', unit: 'Cases', dutyPercentage: 110, presentDutyBalance: 0, bondExpiryDate: '' };
+          stockForm.value = {
+            companyId: '',
+            commodityName: '',
+            commodityType: 'Beer',
+            pricePerCaseUSD: 0,
+            purchaseType: 'BE',
+            purchaseNumber: '',
+            purchaseDate: new Date().toISOString().substr(0, 10),
+            bondNumber: '',
+            bondDate: new Date().toISOString().substr(0, 10),
+            totalQuantity: 0,
+            packing: '',
+            unit: 'Cases',
+            dutyPercentage: 110,
+            presentDutyBalance: 0,
+            bondExpiryDate: ''
+          };
         } else {
           const err = await res.json();
           alert(err.error || 'Failed to save stock item.');
@@ -2267,8 +2359,11 @@
           commodityName: item.commodityName,
           commodityType: item.commodityType,
           pricePerCaseUSD: item.pricePerCaseUSD,
-          beDetails: item.beDetails,
-          bondDetails: item.bondDetails,
+          purchaseType: item.purchaseType || 'BE',
+          purchaseNumber: item.purchaseNumber || '',
+          purchaseDate: item.purchaseDate ? new Date(item.purchaseDate).toISOString().substr(0, 10) : '',
+          bondNumber: item.bondNumber || '',
+          bondDate: item.bondDate ? new Date(item.bondDate).toISOString().substr(0, 10) : '',
           totalQuantity: item.totalQuantity,
           remainingQuantity: item.remainingQuantity,
           packing: item.packing,
@@ -2282,7 +2377,23 @@
 
       const openCreateStockModal = () => {
         editingStockId.value = null;
-        stockForm.value = { companyId: '', commodityName: '', commodityType: 'Beer', pricePerCaseUSD: 0, beDetails: '', bondDetails: '', totalQuantity: 0, packing: '', unit: 'Cases', dutyPercentage: 110, presentDutyBalance: 0, bondExpiryDate: '' };
+        stockForm.value = {
+          companyId: '',
+          commodityName: '',
+          commodityType: 'Beer',
+          pricePerCaseUSD: 0,
+          purchaseType: 'BE',
+          purchaseNumber: '',
+          purchaseDate: new Date().toISOString().substr(0, 10),
+          bondNumber: '',
+          bondDate: new Date().toISOString().substr(0, 10),
+          totalQuantity: 0,
+          packing: '',
+          unit: 'Cases',
+          dutyPercentage: 110,
+          presentDutyBalance: 0,
+          bondExpiryDate: ''
+        };
         showStockModal.value = true;
       };
 
@@ -2698,22 +2809,74 @@
         }
       };
 
-      const finalizeGRDocumentPackage = () => {
+      const finalizeGRDocumentPackage = (force = false) => {
+        const id = selectedGRDoc.value.transaction.id;
+        const confirmTitle = force ? 'Proceed with Finalization' : 'Finalize GR Document';
+        const confirmMsg = force 
+          ? 'Are you sure you want to proceed and finalize this GR Document with the updated values?'
+          : 'Are you sure you want to finalize this GR Document? This will lock all calculations, deduct remaining warehouse stock and duty balance permanently, and mark documents as finalized.';
+
         triggerConfirm(
-          'Finalize GR Document',
-          'Are you sure you want to finalize this GR Document? This will lock all calculations, deduct remaining warehouse stock permanently, and mark documents as finalized.',
+          confirmTitle,
+          confirmMsg,
           async () => {
-            const id = selectedGRDoc.value.transaction.id;
-            const res = await fetch(`/api/gr-docs/${id}/generate`, {
+            const url = `/api/gr-docs/${id}/generate${force ? '?force=true' : ''}`;
+            const res = await fetch(url, {
               method: 'POST',
               headers: getHeaders()
             });
+            const data = await res.json();
             
             if (res.ok) {
-              fetchSingleGRDoc(id);
+              if (data.warning) {
+                // Show concurrent modification dialog/diff list
+                let warningMsg = 'WARNING: Stock or duty values have changed since this draft was saved because another transaction was finalized in the meantime:\n\n';
+                data.changes.forEach(change => {
+                  warningMsg += `- ${change.item} (${change.field}): ${change.oldVal} -> ${change.newVal}\n`;
+                });
+                warningMsg += '\nDo you still want to proceed and finalize this document?';
+                
+                triggerConfirm(
+                  'Values Changed - Confirm Finalization',
+                  warningMsg,
+                  () => {
+                    finalizeGRDocumentPackage(true); // Call again with force=true
+                  }
+                );
+              } else {
+                fetchSingleGRDoc(id);
+              }
             } else {
-              const err = await res.json();
-              alert(err.error || 'Failed to finalize GR Document package.');
+              alert(data.error || 'Failed to finalize GR Document package.');
+            }
+          }
+        );
+      };
+
+      const canCancelGR = (tx) => {
+        if (!tx) return false;
+        if (currentUser.value?.role === 'admin') return true;
+        const diffTime = Math.abs(new Date() - new Date(tx.createdAt));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= 30;
+      };
+
+      const cancelGRDocumentPackage = () => {
+        if (!selectedGRDoc.value?.transaction) return;
+        const tx = selectedGRDoc.value.transaction;
+        triggerConfirm(
+          'Cancel GR Document Package',
+          `Are you sure you want to cancel GR "${tx.grNumber}"? This will reverse all stock and duty balance deductions. This action is permanent but the record will remain in the history as CANCELLED.`,
+          async () => {
+            const res = await fetch(`/api/gr-docs/${tx.id}/cancel`, {
+              method: 'POST',
+              headers: getHeaders()
+            });
+            const data = await res.json();
+            if (res.ok) {
+              fetchSingleGRDoc(tx.id);
+            } else {
+              alert(data.error || 'Failed to cancel GR Document package.');
             }
           }
         );
@@ -2802,6 +2965,7 @@
         editingGRDocId,
         userFilterCompanyId,
         ruleFilterCompanyId,
+        hideZeroStock,
         
         // Methods
         navigate,
@@ -2820,6 +2984,8 @@
         editDraftGRPackage,
         submitGRForm,
         finalizeGRDocumentPackage,
+        canCancelGR,
+        cancelGRDocumentPackage,
         printPreviewDoc,
         fetchGRDocs,
         fetchAuditLogs,

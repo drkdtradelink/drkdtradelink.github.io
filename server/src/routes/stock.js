@@ -36,6 +36,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+function formatDateString(dateVal) {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 /**
  * @route POST /api/stock
  * @desc Create a new stock item
@@ -45,8 +55,11 @@ router.post('/', async (req, res) => {
     const {
       commodityName,
       commodityType,
-      beDetails,
-      bondDetails,
+      purchaseType,
+      purchaseNumber,
+      purchaseDate,
+      bondNumber,
+      bondDate,
       bondExpiryDate,
       pricePerCaseUSD,
       totalQuantity,
@@ -57,9 +70,25 @@ router.post('/', async (req, res) => {
       companyId
     } = req.body;
 
-    if (!commodityName || !commodityType || !beDetails || !bondDetails || pricePerCaseUSD === undefined || totalQuantity === undefined || dutyPercentage === undefined) {
-      return res.status(400).json({ error: 'commodityName, commodityType, beDetails, bondDetails, pricePerCaseUSD, totalQuantity, and dutyPercentage are required.' });
+    // Validate empty/missing inputs
+    if (!commodityName || !commodityType || !purchaseType || !purchaseNumber || !purchaseDate || !bondNumber || !bondDate || pricePerCaseUSD === undefined || totalQuantity === undefined || dutyPercentage === undefined) {
+      return res.status(400).json({ error: 'commodityName, commodityType, purchaseType, purchaseNumber, purchaseDate, bondNumber, bondDate, pricePerCaseUSD, totalQuantity, and dutyPercentage are required.' });
     }
+
+    if (String(commodityName).trim() === '' || String(commodityType).trim() === '' || String(purchaseNumber).trim() === '' || String(bondNumber).trim() === '') {
+      return res.status(400).json({ error: 'Required text fields cannot be empty.' });
+    }
+
+    // Validate non-negative numbers
+    const parsedPrice = parseFloat(pricePerCaseUSD);
+    const parsedQty = parseInt(totalQuantity);
+    const parsedDuty = parseFloat(dutyPercentage);
+    const parsedPresentDuty = parseFloat(presentDutyBalance || 0);
+
+    if (isNaN(parsedPrice) || parsedPrice < 0) return res.status(400).json({ error: 'Price per Case (USD) cannot be negative or empty.' });
+    if (isNaN(parsedQty) || parsedQty < 0) return res.status(400).json({ error: 'Total Quantity cannot be negative or empty.' });
+    if (isNaN(parsedDuty) || parsedDuty < 0) return res.status(400).json({ error: 'Duty Percentage (%) cannot be negative or empty.' });
+    if (isNaN(parsedPresentDuty) || parsedPresentDuty < 0) return res.status(400).json({ error: 'Present Duty Balance (INR) cannot be negative.' });
 
     let targetCompanyId = req.company?.id;
     if (req.user.role === 'admin' && companyId) {
@@ -70,28 +99,37 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'companyId is required for system administrator.' });
     }
 
+    // Concatenate beDetails and bondDetails
+    const finalBeDetails = `${purchaseType} NO: ${purchaseNumber} DT: ${formatDateString(purchaseDate)}`;
+    const finalBondDetails = `BOND NO: ${bondNumber} DT: ${formatDateString(bondDate)}`;
+
     const item = await prisma.stockItem.create({
       data: {
         companyId: targetCompanyId,
         commodityName,
         commodityType,
-        beDetails,
-        bondDetails,
+        purchaseType,
+        purchaseNumber,
+        purchaseDate: new Date(purchaseDate),
+        bondNumber,
+        bondDate: new Date(bondDate),
+        beDetails: finalBeDetails,
+        bondDetails: finalBondDetails,
         bondExpiryDate: bondExpiryDate ? new Date(bondExpiryDate) : null,
-        pricePerCaseUSD: parseFloat(pricePerCaseUSD),
-        totalQuantity: parseInt(totalQuantity),
-        remainingQuantity: parseInt(totalQuantity), // starts as equal
+        pricePerCaseUSD: parsedPrice,
+        totalQuantity: parsedQty,
+        remainingQuantity: parsedQty, // starts as equal
         packing: packing || '',
         unit: unit || 'Cases',
-        dutyPercentage: parseFloat(dutyPercentage),
-        presentDutyBalance: parseFloat(presentDutyBalance || 0)
+        dutyPercentage: parsedDuty,
+        presentDutyBalance: parsedPresentDuty
       }
     });
 
     res.status(201).json(item);
   } catch (error) {
     console.error('Create stock item error:', error);
-    res.status(500).json({ error: 'Failed to create stock item.' });
+    res.status(500).json({ error: error.message || 'Failed to create stock item.' });
   }
 });
 
@@ -104,8 +142,11 @@ router.put('/:id', async (req, res) => {
     const {
       commodityName,
       commodityType,
-      beDetails,
-      bondDetails,
+      purchaseType,
+      purchaseNumber,
+      purchaseDate,
+      bondNumber,
+      bondDate,
       bondExpiryDate,
       pricePerCaseUSD,
       totalQuantity,
@@ -124,34 +165,78 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Stock item not found.' });
     }
 
+    // Validate non-negative numbers if supplied
+    if (pricePerCaseUSD !== undefined && (isNaN(parseFloat(pricePerCaseUSD)) || parseFloat(pricePerCaseUSD) < 0)) {
+      return res.status(400).json({ error: 'Price per Case (USD) cannot be negative.' });
+    }
+    if (totalQuantity !== undefined && (isNaN(parseInt(totalQuantity)) || parseInt(totalQuantity) < 0)) {
+      return res.status(400).json({ error: 'Total Quantity cannot be negative.' });
+    }
+    if (remainingQuantity !== undefined && (isNaN(parseInt(remainingQuantity)) || parseInt(remainingQuantity) < 0)) {
+      return res.status(400).json({ error: 'Remaining Quantity cannot be negative.' });
+    }
+    if (dutyPercentage !== undefined && (isNaN(parseFloat(dutyPercentage)) || parseFloat(dutyPercentage) < 0)) {
+      return res.status(400).json({ error: 'Duty Percentage (%) cannot be negative.' });
+    }
+    if (presentDutyBalance !== undefined && (isNaN(parseFloat(presentDutyBalance)) || parseFloat(presentDutyBalance) < 0)) {
+      return res.status(400).json({ error: 'Present Duty Balance (INR) cannot be negative.' });
+    }
+
+    // Prepare updated fields
+    const data = {};
+    if (commodityName) data.commodityName = commodityName;
+    if (commodityType) data.commodityType = commodityType;
+    if (purchaseType) data.purchaseType = purchaseType;
+    if (purchaseNumber) data.purchaseNumber = purchaseNumber;
+    if (purchaseDate) data.purchaseDate = new Date(purchaseDate);
+    if (bondNumber) data.bondNumber = bondNumber;
+    if (bondDate) data.bondDate = new Date(bondDate);
+    if (bondExpiryDate !== undefined) data.bondExpiryDate = bondExpiryDate ? new Date(bondExpiryDate) : null;
+    if (pricePerCaseUSD !== undefined) data.pricePerCaseUSD = parseFloat(pricePerCaseUSD);
+    if (totalQuantity !== undefined) data.totalQuantity = parseInt(totalQuantity);
+    if (remainingQuantity !== undefined) data.remainingQuantity = parseInt(remainingQuantity);
+    if (packing !== undefined) data.packing = packing;
+    if (unit) data.unit = unit;
+    if (dutyPercentage !== undefined) data.dutyPercentage = parseFloat(dutyPercentage);
+    if (presentDutyBalance !== undefined) data.presentDutyBalance = parseFloat(presentDutyBalance);
+
+    // Compute beDetails and bondDetails if any relevant fields changed
+    const finalPurchaseType = purchaseType || existing.purchaseType;
+    const finalPurchaseNumber = purchaseNumber || existing.purchaseNumber;
+    const finalPurchaseDate = purchaseDate ? new Date(purchaseDate) : existing.purchaseDate;
+    const finalBondNumber = bondNumber || existing.bondNumber;
+    const finalBondDate = bondDate ? new Date(bondDate) : existing.bondDate;
+
+    data.beDetails = `${finalPurchaseType} NO: ${finalPurchaseNumber} DT: ${formatDateString(finalPurchaseDate)}`;
+    data.bondDetails = `BOND NO: ${finalBondNumber} DT: ${formatDateString(finalBondDate)}`;
+
     const updated = await prisma.stockItem.update({
       where: { id: req.params.id },
-      data: {
-        commodityName: commodityName || existing.commodityName,
-        commodityType: commodityType || existing.commodityType,
-        beDetails: beDetails || existing.beDetails,
-        bondDetails: bondDetails || existing.bondDetails,
-        bondExpiryDate: bondExpiryDate ? new Date(bondExpiryDate) : existing.bondExpiryDate,
-        pricePerCaseUSD: pricePerCaseUSD !== undefined ? parseFloat(pricePerCaseUSD) : existing.pricePerCaseUSD,
-        totalQuantity: totalQuantity !== undefined ? parseInt(totalQuantity) : existing.totalQuantity,
-        remainingQuantity: remainingQuantity !== undefined ? parseInt(remainingQuantity) : existing.remainingQuantity,
-        packing: packing !== undefined ? packing : existing.packing,
-        unit: unit || existing.unit,
-        dutyPercentage: dutyPercentage !== undefined ? parseFloat(dutyPercentage) : existing.dutyPercentage,
-        presentDutyBalance: presentDutyBalance !== undefined ? parseFloat(presentDutyBalance) : existing.presentDutyBalance
-      }
+      data
     });
 
     // Audit log tracking
     const changes = [];
-    const fieldsToTrack = ['commodityName', 'commodityType', 'beDetails', 'bondDetails', 'pricePerCaseUSD', 'totalQuantity', 'remainingQuantity', 'packing', 'unit', 'dutyPercentage', 'presentDutyBalance'];
+    const fieldsToTrack = [
+      'commodityName', 'commodityType', 'purchaseType', 'purchaseNumber', 'purchaseDate',
+      'bondNumber', 'bondDate', 'pricePerCaseUSD', 'totalQuantity', 'remainingQuantity',
+      'packing', 'unit', 'dutyPercentage', 'presentDutyBalance'
+    ];
     fieldsToTrack.forEach(field => {
-      if (req.body[field] !== undefined && String(req.body[field]) !== String(existing[field] !== null && existing[field] !== undefined ? existing[field] : '')) {
-        changes.push({
-          field,
-          oldVal: String(existing[field] !== null && existing[field] !== undefined ? existing[field] : ''),
-          newVal: String(req.body[field])
-        });
+      if (req.body[field] !== undefined) {
+        let oldVal = existing[field];
+        let newVal = req.body[field];
+        if (field === 'purchaseDate' || field === 'bondDate') {
+          oldVal = oldVal ? oldVal.toISOString().substr(0,10) : '';
+          newVal = newVal ? new Date(newVal).toISOString().substr(0,10) : '';
+        }
+        if (String(oldVal) !== String(newVal)) {
+          changes.push({
+            field,
+            oldVal: String(oldVal !== null && oldVal !== undefined ? oldVal : ''),
+            newVal: String(newVal)
+          });
+        }
       }
     });
 
@@ -174,7 +259,7 @@ router.put('/:id', async (req, res) => {
     res.json(updated);
   } catch (error) {
     console.error('Update stock item error:', error);
-    res.status(500).json({ error: 'Failed to update stock item.' });
+    res.status(500).json({ error: error.message || 'Failed to update stock item.' });
   }
 });
 

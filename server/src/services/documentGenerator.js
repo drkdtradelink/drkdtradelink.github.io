@@ -553,33 +553,73 @@ function renderDeliveryChallan(transaction, company, party, items, totals) {
 }
 
 function renderStockList(transaction, company, items) {
-  const itemsRows = items.map((item, index) => `
-    <tr>
-      <td style="border: 1px solid #000; padding: 4px; text-align: center;">${index + 1}</td>
-      <td style="border: 1px solid #000; padding: 4px;">${item.item}</td>
-      <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.qty} ${item.unit || 'Cases'}</td>
-      <td style="border: 1px solid #000; padding: 4px;">${item.beDetails}</td>
-      <td style="border: 1px solid #000; padding: 4px;">${item.bondDetails}</td>
-      <td style="border: 1px solid #000; padding: 4px;">${item.balanceInBond}</td>
-    </tr>
-  `).join('');
+  const itemsRows = items.map((stock, index) => {
+    // 1. Find if this stock is in the current GR transaction
+    const grItem = transaction.items.find(gi => gi.stockItemId === stock.id);
+    const grQty = grItem ? grItem.qty : 0;
+
+    // 2. Calculate remaining stock quantity WITHOUT deducting this GR's quantity
+    const remQty = stock.remainingQuantity + (transaction.status === 'generated' ? grQty : 0);
+
+    // 3. Values and duties calculations
+    // When bought initially:
+    const initValueInr = stock.totalQuantity * stock.pricePerCaseUSD * transaction.exchangeRate;
+    const initDutyInr = stock.totalQuantity * stock.pricePerCaseUSD * transaction.exchangeRate * (stock.dutyPercentage / 100);
+
+    // Remaining (without current items deducted):
+    const remValueInr = remQty * stock.pricePerCaseUSD * transaction.exchangeRate;
+    const remDutyInr = remQty * stock.pricePerCaseUSD * transaction.exchangeRate * (stock.dutyPercentage / 100);
+
+    return `
+      <tr>
+        <td style="border: 1px solid #000; padding: 4px; text-align: center;">${index + 1}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 10px;">${stock.commodityName}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">${stock.packing}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-size: 10px; text-align: center;">${stock.purchaseType} NO: ${stock.purchaseNumber}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-size: 10px; text-align: center;">${stock.purchaseDate ? formatDate(stock.purchaseDate) : 'N/A'}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-size: 10px; text-align: center;">${stock.bondNumber}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-size: 10px; text-align: center;">${stock.bondDate ? formatDate(stock.bondDate) : 'N/A'}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: center;">${stock.totalQuantity} ${stock.unit || 'Cases'}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: right;">₹${initValueInr.toFixed(2)}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: right;">₹${initDutyInr.toFixed(2)}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: center; font-weight: bold; background-color: #f8fafc;">${remQty} ${stock.unit || 'Cases'}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: right; background-color: #f8fafc;">₹${remValueInr.toFixed(2)}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: right; background-color: #f8fafc;">₹${remDutyInr.toFixed(2)}</td>
+      </tr>
+    `;
+  }).join('');
 
   return `
-    <div class="portrait-page page-break" style="font-size: 13px; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; min-height: 296mm; box-sizing: border-box; padding: 10mm 15mm; padding-top: 25mm;">
-      <h2 class="text-center font-bold text-xl mb-6 underline" style="text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 24px; text-decoration: underline;">STOCK SHEET / STOCK LIST</h2>
-      <p class="mb-4"><strong>GR TRANSACTION REFERENCE:</strong> ${transaction.grNumber}</p>
-      <p class="mb-4"><strong>DATE:</strong> ${formatDate(transaction.date)}</p>
-      <p class="mb-6"><strong>WAREHOUSE:</strong> ${company.legalName} (${company.warehouseCode})</p>
+    <div class="landscape-page page-break" style="font-size: 11px; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; min-height: 200mm; box-sizing: border-box; padding: 10mm 15mm;">
+      <h2 class="text-center font-bold text-xl mb-4 underline" style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 16px; text-decoration: underline;">STOCK SHEET / TOTAL STOCK INVENTORY</h2>
       
-      <table class="w-full mb-8" style="border-collapse: collapse; width: 100%; margin-bottom: 32px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 12px;">
+        <div>
+          <p style="margin: 2px 0;"><strong>GR TRANSACTION REF:</strong> ${transaction.grNumber}</p>
+          <p style="margin: 2px 0;"><strong>DATE:</strong> ${formatDate(transaction.date)}</p>
+        </div>
+        <div style="text-align: right;">
+          <p style="margin: 2px 0;"><strong>WAREHOUSE KEEPER:</strong> ${company.legalName}</p>
+          <p style="margin: 2px 0;"><strong>EXCHANGE RATE:</strong> ₹ ${transaction.exchangeRate.toFixed(2)}</p>
+        </div>
+      </div>
+      
+      <table class="w-full mb-6" style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
         <thead>
           <tr style="background-color: #f3f4f6;">
-            <th style="border: 1px solid #000; padding: 4px; width: 8%;">SR NO</th>
-            <th style="border: 1px solid #000; padding: 4px;">COMMODITY</th>
-            <th style="border: 1px solid #000; padding: 4px; width: 15%;">QTY TRANSFER</th>
-            <th style="border: 1px solid #000; padding: 4px; width: 25%;">BE DETAILS</th>
-            <th style="border: 1px solid #000; padding: 4px; width: 25%;">BOND DETAILS</th>
-            <th style="border: 1px solid #000; padding: 4px; width: 15%;">BAL IN BOND</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 3%;">SR</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 15%;">COMMODITY</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 10%;">PACKING</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 11%;">BOUGHT VIA</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 8%;">BOUGHT DATE</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 10%;">BOND NO</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 8%;">BOND DATE</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 8%;">INIT QTY</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 8%;">INIT VALUE (INR)</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 9%;">INIT DUTY (INR)</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 8%; background-color: #f1f5f9;">REM QTY (PRE-GR)</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 8%; background-color: #f1f5f9;">REM VALUE (INR)</th>
+            <th style="border: 1px solid #000; padding: 4px; font-size: 9px; width: 9%; background-color: #f1f5f9;">REM DUTY (INR)</th>
           </tr>
         </thead>
         <tbody>
@@ -587,18 +627,18 @@ function renderStockList(transaction, company, items) {
         </tbody>
       </table>
       
-      <div class="flex justify-between mt-auto" style="display: flex; justify-content: space-between; margin-top: auto; padding: 0 16px;">
+      <div class="flex justify-between mt-auto" style="display: flex; justify-content: space-between; margin-top: auto; padding: 0 16px; font-size: 11px;">
         <div>
           <p>Prepared By</p>
-          <p style="margin-top: 64px;">_________________</p>
+          <p style="margin-top: 48px;">_________________</p>
         </div>
         <div>
           <p>Verified By</p>
-          <p style="margin-top: 64px;">_________________</p>
+          <p style="margin-top: 48px;">_________________</p>
         </div>
         <div class="text-right" style="text-align: right;">
           <p>FOR ${company.legalName.toUpperCase()}</p>
-          <p style="margin-top: 64px;">Authorised Signatory</p>
+          <p style="margin-top: 48px;">Authorised Signatory</p>
         </div>
       </div>
     </div>

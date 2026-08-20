@@ -8,53 +8,58 @@ generator client {
 }
 
 model Company {
-  id             String   @id @default(uuid())
-  legalName      String
-  displayName    String
-  address        String
-  city           String
-  state          String
-  country        String   @default("India")
-  postalCode     String?
-  phone          String?
-  email          String?
-  gstin          String?
-  iec            String?
-  warehouseCode  String?
-  bankName       String?
-  bankAccount    String?
-  bankIfsc       String?
-  bankBranch     String?
-  customStation  String?
-  subdomain      String   @unique // e.g. "drkd", "companya"
-  status         String   @default("active") // active | inactive
+  id               String   @id @default(uuid())
+  legalName        String
+  displayName      String
+  address          String
+  city             String
+  state            String
+  country          String   @default("India")
+  postalCode       String?
+  phone            String?
+  email            String?
+  gstin            String?
+  iec              String?
+  warehouseCode    String?
+  bankName         String?
+  bankAccount      String?
+  bankIfsc         String?
+  bankBranch       String?
+  customStation    String?
+  subdomain        String   @unique // e.g. "drkd", "companya"
+  status           String   @default("active") // active | inactive
+  bondMultiplier   Float    @default(3.0)
   letterheadBase64 String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   users          User[]
   parties        Party[]
   stockItems     StockItem[]
   dutyRules      DutyRule[]
   grTransactions GRTransaction[]
+  grPurchases    GRPurchaseTransaction[]
+  shippingBills  ShippingBillTransaction[]
   auditLogs      AuditLog[]
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  phone         String?
-  passwordHash  String
-  companyId     String?  // null means super admin (not bound to a single company)
-  role          String   @default("operator") // admin (super admin/company admin) | manager | operator
-  status        String   @default("active") // active | inactive | suspended
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  companyId    String? // null means super admin (not bound to a single company)
+  role         String   @default("operator") // admin (super admin/company admin) | manager | operator
+  status       String   @default("active") // active | inactive | suspended
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  company       Company? @relation(fields: [companyId], references: [id])
+  company        Company?                  @relation(fields: [companyId], references: [id])
   grTransactions GRTransaction[]
-  auditLogs     AuditLog[]
+  grPurchases    GRPurchaseTransaction[]
+  shippingBills  ShippingBillTransaction[]
+  auditLogs      AuditLog[]
 }
 
 model Party {
@@ -68,61 +73,68 @@ model Party {
   warehouseCode String?
   phone         String?
   email         String?
+  partyType     String   @default("Both") // Vendor | Consignee | Both
   status        String   @default("active") // active | inactive
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
+  company        Company                   @relation(fields: [companyId], references: [id])
   grTransactions GRTransaction[]
+  grPurchases    GRPurchaseTransaction[]
+  shippingBills  ShippingBillTransaction[]
 }
 
 model StockItem {
-  id                String   @id @default(uuid())
-  companyId         String
-  commodityName     String
-  commodityType     String   // Beer | Alcohol/Wine
-  purchaseType      String   @default("BE") // BE | GR
-  purchaseNumber    String   @default("")
-  purchaseDate      DateTime?
-  bondNumber        String   @default("")
-  bondDate          DateTime?
-  beDetails         String   // Concat details for compatibility
-  bondDetails       String   // Concat details for compatibility
-  bondExpiryDate    DateTime?
-  pricePerCaseUSD   Float
-  totalQuantity     Int
-  remainingQuantity Int
-  packing           String
-  unit              String   @default("Cases")
-  dutyPercentage    Float
-  presentDutyBalance Float    @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  companyId          String
+  commodityName      String
+  commodityType      String // Beer | Alcohol/Wine
+  purchaseType       String    @default("BE") // BE | GR
+  purchaseNumber     String    @default("")
+  purchaseDate       DateTime?
+  bondNumber         String    @default("")
+  bondDate           DateTime?
+  beDetails          String // Concat details for compatibility
+  bondDetails        String // Concat details for compatibility
+  bondExpiryDate     DateTime?
+  pricePerCaseUSD    Float
+  totalQuantity      Int
+  remainingQuantity  Int
+  packing            String
+  unit               String    @default("Cases")
+  dutyPercentage     Float
+  presentDutyBalance Float     @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  company           Company  @relation(fields: [companyId], references: [id])
-  grItems           GRTransactionItem[]
+  company Company             @relation(fields: [companyId], references: [id])
+  grItems GRTransactionItem[]
+
+  grPurchaseId      String?
+  grPurchase        GRPurchaseTransaction? @relation(fields: [grPurchaseId], references: [id])
+  shippingBillItems ShippingBillItem[]
 }
 
 model DutyRule {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   companyId      String
   name           String
-  commodityType  String   // Beer | Alcohol/Wine
+  commodityType  String // Beer | Alcohol/Wine
   dutyPercentage Float
-  status         String   @default("active") // active | inactive
-  effectiveFrom  DateTime @default(now())
+  status         String    @default("active") // active | inactive
+  effectiveFrom  DateTime  @default(now())
   effectiveTo    DateTime?
-  version        Int      @default(1)
-  formula        String?  @default("assessableValueInr * (dutyPercentage / 100)")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  version        Int       @default(1)
+  formula        String?   @default("assessableValueInr * (dutyPercentage / 100)")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  company        Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 model GRTransaction {
-  id                  String   @id @default(uuid())
-  grNumber            String   @unique
+  id                  String    @id @default(uuid())
+  grNumber            String    @unique
   companyId           String
   userId              String
   partyId             String
@@ -133,27 +145,27 @@ model GRTransaction {
   invoiceNumber       String
   dcNumber            String
   presentDutyBalance  Float
-  status              String   @default("draft") // draft | generated | printed | cancelled
-  calculationSnapshot String   // JSON stringified snapshot
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  status              String    @default("draft") // draft | generated | printed | cancelled
+  calculationSnapshot String // JSON stringified snapshot
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   generatedAt         DateTime?
 
-  company             Company  @relation(fields: [companyId], references: [id])
-  user                User     @relation(fields: [userId], references: [id])
-  party               Party    @relation(fields: [partyId], references: [id])
-  items               GRTransactionItem[]
+  company Company             @relation(fields: [companyId], references: [id])
+  user    User                @relation(fields: [userId], references: [id])
+  party   Party               @relation(fields: [partyId], references: [id])
+  items   GRTransactionItem[]
 }
 
 model GRTransactionItem {
-  id                 String   @id @default(uuid())
+  id                 String  @id @default(uuid())
   transactionId      String
   stockItemId        String
   item               String
   commodityType      String
   qty                Int
   packing            String
-  unit               String   @default("Cases")
+  unit               String  @default("Cases")
   pricePerCaseUSD    Float
   beDetails          String
   bondDetails        String
@@ -163,25 +175,99 @@ model GRTransactionItem {
   dutyPercentage     Float
   dutyAmountInr      Float
   dutyRuleId         String?
-  dutyRuleSnapshot   String?  // JSON stringified snapshot of the duty rule used
+  dutyRuleSnapshot   String? // JSON stringified snapshot of the duty rule used
 
-  transaction        GRTransaction @relation(fields: [transactionId], references: [id])
-  stockItem          StockItem     @relation(fields: [stockItemId], references: [id])
+  transaction GRTransaction @relation(fields: [transactionId], references: [id])
+  stockItem   StockItem     @relation(fields: [stockItemId], references: [id])
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  companyId   String?
-  userId      String
-  userName    String
-  userRole    String
-  entityType  String   // "Party" | "StockItem"
-  entityId    String
-  entityName  String?
-  action      String   // "UPDATE"
-  changes     String   // JSON stringified array of diffs: [ { field, oldVal, newVal } ]
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  companyId  String?
+  userId     String
+  userName   String
+  userRole   String
+  entityType String // "Party" | "StockItem"
+  entityId   String
+  entityName String?
+  action     String // "UPDATE"
+  changes    String // JSON stringified array of diffs: [ { field, oldVal, newVal } ]
+  createdAt  DateTime @default(now())
 
-  company     Company? @relation(fields: [companyId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+}
+
+model GRPurchaseTransaction {
+  id                  String    @id @default(uuid())
+  grPurchaseNumber    String    @unique
+  companyId           String
+  userId              String
+  vendorId            String
+  date                DateTime
+  status              String    @default("draft") // draft | finalized | cancelled
+  bondValue           Float?
+  calculationSnapshot String? // JSON stringified snapshot
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  generatedAt         DateTime?
+
+  company    Company          @relation(fields: [companyId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+  vendor     Party            @relation(fields: [vendorId], references: [id])
+  items      GRPurchaseItem[]
+  stockItems StockItem[]
+}
+
+model GRPurchaseItem {
+  id                 String  @id @default(uuid())
+  transactionId      String
+  commodityName      String
+  commodityType      String
+  qty                Int
+  unit               String  @default("Cases")
+  packing            String?
+  rate               Float
+  usdValue           Float
+  assessableValueInr Float
+  dutyPercentage     Float
+  dutyAmountInr      Float
+
+  transaction GRPurchaseTransaction @relation(fields: [transactionId], references: [id])
+}
+
+model ShippingBillTransaction {
+  id                  String    @id @default(uuid())
+  sbNumber            String    @unique
+  companyId           String
+  userId              String
+  consigneeId         String
+  date                DateTime
+  portOfLoading       String?
+  portOfDischarge     String?
+  vesselName          String?
+  rotationNo          String?
+  invoiceNumber       String?
+  exchangeRate        Float?    @default(93.45)
+  status              String    @default("draft") // draft | finalized | cancelled
+  calculationSnapshot String? // JSON stringified snapshot
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  generatedAt         DateTime?
+
+  company   Company            @relation(fields: [companyId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+  consignee Party              @relation(fields: [consigneeId], references: [id])
+  items     ShippingBillItem[]
+}
+
+model ShippingBillItem {
+  id            String @id @default(uuid())
+  transactionId String
+  stockItemId   String
+  exportQty     Int
+  fobValue      Float
+
+  transaction ShippingBillTransaction @relation(fields: [transactionId], references: [id])
+  stockItem   StockItem               @relation(fields: [stockItemId], references: [id])
 }

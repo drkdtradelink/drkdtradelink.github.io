@@ -40,38 +40,50 @@ The repository includes utility Python scripts to maintain internal links, compi
 
 ## 🚀 How to Run Locally
 
-Since this is a static site, you do not need complex bundlers or build frameworks.
-
 ### Prerequisites
-- **Python 3.x** (for generating pages or running a quick local web server)
+- **Node.js** (v18+ recommended)
+- **Python 3.x** (for generating static pages or serving the landing pages)
 
-### 1. Serve the Website Locally
-You can run a local development server using any of the following methods:
-
-#### Method A: Python (Recommended)
-Run the following command in your terminal from the root folder:
+### 1. Serve the Landing Pages Locally
+You can serve the static frontend landing pages (outside of the Documents Portal) using:
 ```bash
 python3 -m http.server 8000
 ```
-Then open [http://localhost:8000](http://localhost:8000) in your browser.
+Then open [http://localhost:8000](http://localhost:8000).
 
-#### Method B: VS Code Live Server
-If using VS Code, install the **Live Server** extension, open the repository folder, and click **Go Live** in the bottom status bar.
+### 2. Run the Documents Portal (Vite Vue 3 App + Backend Server)
 
-#### Method C: Node.js / npx
-If you prefer Node:
+The Documents Portal has a split architecture:
+- **Backend API**: Node.js, Express, SQLite, Prisma ORM (located in `server/`).
+- **Frontend SPA**: Vite, Vue 3, SFCs (located in `portal-vue/` and built/served from `portal/`).
+
+#### Step A: Setup & Run Backend API
 ```bash
-npx serve .
+cd server
+npm install --legacy-peer-deps
+npx prisma db push
+npm run seed
+npm run dev
 ```
+The backend server runs on `http://localhost:3000`.
 
-### 2. Updating Pages (Regeneration)
-If you modify the templates (e.g. updating headers or footers in `index.html`), regenerate the service subpages and guides using Python:
+#### Step B: Setup & Run Frontend (Development)
+To run the frontend with hot-reload for development:
 ```bash
-python3 generate_all_services.py
-python3 generate_seo_pages.py
-python3 generate_guide.py
-python3 update_card.py
+cd portal-vue
+npm install
+npm run dev
 ```
+By default, the Vite dev server will run on `http://localhost:5173`. Configure your client to proxy requests to the backend server at `http://localhost:3000`.
+
+#### Step C: Build Frontend (Production)
+Vite will compile and bundle the Single File Components (.vue) directly into the static `portal/` folder which is served by the Express backend:
+```bash
+cd portal-vue
+npm run build
+```
+Once built, you can access the portal directly via the backend server at:
+[http://localhost:3000/portal/](http://localhost:3000/portal/)
 
 ---
 
@@ -88,15 +100,15 @@ python3 update_card.py
 ├── letterhead.png                # Brand asset for the printable letterheads
 ├── grdocs/
 │   └── index.html                # Legacy client-side Vue 3 GR Tool (UNTOUCHED)
-├── portal/
-│   └── index.html                # New Multi-Tenant Documents Portal SPA (Vue 3)
+├── portal/                       # Production build directory for the Portal SPA
+├── portal-vue/                   # Scalable Vite + Vue 3 Single File Component frontend source
 ├── server/
 │   ├── prisma/
 │   │   ├── schema.prisma         # Prisma SQLite Database Schema
 │   │   └── seed.js               # Database Seeding Script (Admin/Rules/Stock)
 │   ├── src/
 │   │   ├── index.js              # Express API Server entry point
-│   │   ├── routes/               # API Router Handlers (Auth, GR, Stock, Parties)
+│   │   ├── routes/               # API Router Handlers (Auth, GR, Stock, Parties, GR Purchases, Shipping Bills)
 │   │   ├── middleware/           # Subdomain Multi-tenant & JWT Auth Middleware
 │   │   └── services/             # Calculations & Server HTML Rendering Engines
 │   ├── reset-password.js         # CLI tool to reset user passwords
@@ -110,50 +122,26 @@ python3 update_card.py
 
 ## 🏛️ Documents Portal (Subdomain Multi-Tenant System)
 
-The **Documents Portal** is a full-featured multi-company enterprise document management platform located at `portal/`. It is connected to a Node.js + Express backend running a SQLite database (via Prisma) with full support for subdomain multi-tenancy.
+The **Documents Portal** is a full-featured multi-company enterprise document management platform. It is connected to a Node.js + Express backend running a SQLite database (via Prisma) with full support for subdomain multi-tenancy.
 
 ### Key Features
-- **Subdomain Routing**: Dedicated domains for system admin (`admin.drkdtradelink.com`) and individual companies (`drkd.drkdtradelink.com` or `companya.drkdtradelink.com`).
+- **Subdomain Routing**: Dedicated domains for system admin (`admin.drkdtradelink.com`) and individual companies (`drkd.drkdtradelink.com`).
 - **Role-based Access Control**: System Admin, Company Manager, and Company Operator roles.
-- **Company-Prefixed GR Numbers**: Company-specific GR numbering format (e.g. `DRKD-GR-2026-001`, `RA-GR-2026-001`).
-- **Draft GR Package Editing**: Draft GR packages can be edited via "Edit Draft Package" (`PUT /api/gr-docs/:id`) before finalization.
-- **Dynamic Cargo Item Units**: Supports dynamic units across stock items and generated GR documents (Cases, Cartons, Boxes, Bottles, Packs).
-- **User Phone Number Visibility & Admin Authorization**: Super Admin Users directory displays phone/contact details. Account suspension/activation requires Super Admin password authorization (`X-Admin-Password`).
-- **User Profile Settings (`#/profile`)**: Profile settings for name, phone, and password updates (email remains read-only).
-- **Manager Party & Stock Edits with Audit Logs**: Managers can edit stock items and parties. All edits are tracked in an `AuditLog` table and displayed in the Super Admin console under **"Changes Made by Users"** (`#/admin/audit-logs`) with side-by-side diff checkers.
+- **GR Purchase (Inbound/Warehousing) Module**:
+  - Auto-generating company context-aware reference numbers (`GRP-[Subdomain]-YYYY-XXX`).
+  - Automatically calculates triple-duty bond values based on company bond multipliers.
+  - Converts items into available bonded inventory upon finalization.
+  - Printable mockups: Warehousing Bond (Section 59), Notesheet, Space Availability Certificate, Inbound Tally/Stocklist, and Covering Letter.
+- **Pink Shipping Bill (Ex-Bond Export) Module**:
+  - Auto-generating reference numbers (`PSB-[Subdomain]-YYYY-XXX`).
+  - Validation against active stock quantities.
+  - Dynamic stock subtraction from available bonded inventory upon finalization.
+  - Printable mockups: Pink Shipping Bill (Customs, Exporter, and Transport copies), Export Invoice, Packing List, and Annexure/Declarations.
 - **Editable Commodity Price per Case (USD)**: Customs clearance operators can customize price per case USD during GR package creation.
-- **Auto-Incremental Invoice & DC Numbers**: Auto-generates next sequential Invoice (`INV-001`, `INV-002`) and Delivery Challan (`DC-001`, `DC-002`) numbers.
+- **Auto-Incremental Invoice & DC Numbers**: Auto-generates next sequential Invoice (`INV-001`, `INV-002`) and Delivery Challan (`DC-001`, `DC-002`).
 - **Auto-Fetched Present Duty Balance (INR)**: Auto-calculates total remaining duty value across all active warehouse stock items.
-- **Independent Invoice & DC Dates**: Customizable dates for Invoice and Delivery Challan printing.
-- **PNG Letterhead Support**: Custom company letterhead PNG upload rendered at the top of Invoice, Delivery Challan, and Submission Letter.
-- **Seeded Duty Calculation Engine**: Centralized calculations for Alcohol/Wine (150% duty) and Beer (110% duty) based on dynamic, non-hardcoded company rules.
-- **Unified Document Preview**: Generate and preview the entire GR Document Package (8 documents: Part 1 Front, Part 2 Back, Duty Calc, Submission Letter, Notesheet, Invoice, Delivery Challan, Stocklist) inside a single tabbed interface.
+- **Unified Document Preview**: Generate and preview document packages inside a single tabbed interface.
 - **Stock Validation**: Prevents drawing items beyond available warehouse stock. Decrements stock levels when transactions are finalized.
-
-### Local Development Setup & Launch
-
-1. **Install Server Dependencies**:
-   ```bash
-   cd server
-   npm install --legacy-peer-deps
-   ```
-
-2. **Sync database and generate Prisma Client**:
-   ```bash
-   npx prisma db push
-   ```
-
-3. **Seed Default Data**:
-   This populates the database with the default Super Admin, DRKD Tradelink company, user accounts, duty rules, parties, and initial stock items:
-   ```bash
-   npm run seed
-   ```
-
-4. **Start the server in Development mode**:
-   ```bash
-   npm run dev
-   ```
-   The backend server will run on port `3000`. The portal frontend will be served at `http://localhost:3000/portal/`.
 
 ### Default Seeding Credentials
 When testing locally, you can simulate company subdomains by using the `X-Subdomain` header or typing the subdomain slug in the login card.
@@ -193,4 +181,3 @@ An API integration collection is provided at `server/Documents_Portal_APIs.postm
 
 ## 🌐 Deployment
 This project keeps the public website hosted on **GitHub Pages**. The new **Documents Portal** requires a server environment to run the Express API and SQLite database (e.g. VPS, Render, Railway, or AWS EC2). Ensure the server is configured to forward request subdomains to the Express application host header for tenant routing.
-

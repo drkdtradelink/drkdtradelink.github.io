@@ -36,6 +36,30 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /api/stock/available
+ * @desc Get all stock items with remaining quantity > 0
+ */
+router.get('/available', async (req, res) => {
+  try {
+    const whereClause = {
+      remainingQuantity: { gt: 0 }
+    };
+    if (req.company) {
+      whereClause.companyId = req.company.id;
+    }
+    const stockItems = await prisma.stockItem.findMany({
+      where: whereClause,
+      include: { company: { select: { displayName: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(stockItems);
+  } catch (error) {
+    console.error('List available stock error:', error);
+    res.status(500).json({ error: 'Failed to retrieve available stock items.' });
+  }
+});
+
 function formatDateString(dateVal) {
   if (!dateVal) return '';
   const d = new Date(dateVal);

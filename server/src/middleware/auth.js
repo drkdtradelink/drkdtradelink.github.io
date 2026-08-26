@@ -14,11 +14,13 @@ async function authenticate(req, res, next) {
     
     if (!subdomain) {
       const host = req.headers.host || ''; // e.g. "drkd.localhost:3000" or "drkd.drkdtradelink.com"
-      const parts = host.split('.');
-      if (parts.length > 2) {
-        // If host is companya.drkdtradelink.com -> parts = ['companya', 'drkdtradelink', 'com'] -> parts[0]
-        // If host is companya.localhost:3000 -> parts = ['companya', 'localhost:3000'] -> parts[0]
-        subdomain = parts[0];
+      const isPlatformHost = /\.(vercel\.app|onrender\.com|github\.io|railway\.app|herokuapp\.com)$/i.test(host);
+      
+      if (!isPlatformHost) {
+        const parts = host.split('.');
+        if (parts.length > 2) {
+          subdomain = parts[0];
+        }
       }
     }
 
@@ -71,24 +73,25 @@ async function authenticate(req, res, next) {
       });
 
       if (!company) {
-        return res.status(404).json({ error: 'Company not found.' });
+        // Fallback to user's registered company if subdomain is invalid/platform host
+        if (user.companyId) {
+          req.company = user.company || await prisma.company.findUnique({ where: { id: user.companyId } });
+        } else {
+          req.company = null;
+        }
+      } else {
+        if (user.role !== 'admin' && company.status !== 'active') {
+          return res.status(403).json({ error: 'Company is suspended or inactive.' });
+        }
+        if (user.role !== 'admin' && user.companyId !== company.id) {
+          return res.status(403).json({ error: 'Access denied. You do not belong to this company.' });
+        }
+        req.company = company;
       }
-
-      if (user.role !== 'admin' && company.status !== 'active') {
-        return res.status(403).json({ error: 'Company is suspended or inactive.' });
-      }
-
-      // Check if user belongs to this company (or is super admin who has cross-company privileges)
-      if (user.role !== 'admin' && user.companyId !== company.id) {
-        return res.status(403).json({ error: 'Access denied. You do not belong to this company.' });
-      }
-
-      req.company = company;
     } else {
-      // No subdomain specified. If user is super admin, let them proceed without company scope.
-      // If user is regular company user, default to their own company.
+      // No subdomain specified. Default to user's company
       if (user.companyId) {
-        const company = await prisma.company.findUnique({
+        const company = user.company || await prisma.company.findUnique({
           where: { id: user.companyId }
         });
         

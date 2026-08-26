@@ -28,6 +28,7 @@ model Company {
   customStation    String?
   subdomain        String   @unique // e.g. "drkd", "companya"
   status           String   @default("active") // active | inactive
+  commodityTypes   String?  @default("Beer,Whisky/Wine/Rum,Cigarette")
   bondMultiplier   Float    @default(3.0)
   bgNumber         String?
   bgBankName       String?

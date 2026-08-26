@@ -960,6 +960,11 @@
                   <input type="number" v-model="companyForm.bgAmount" placeholder="e.g. 5000000" class="form-control">
                 </div>
                 <div class="form-group">
+                  <label class="form-label">Allowed Commodity Types (Comma-separated)</label>
+                  <input type="text" v-model="companyForm.commodityTypes" placeholder="e.g. Beer, Whisky/Wine/Rum, Cigarette" class="form-control">
+                  <small style="color: #64748b; font-size: 11px;">Default ones: Beer, Whisky/Wine/Rum, Cigarette. Admins can add custom commodity types.</small>
+                </div>
+                <div class="form-group">
                   <label class="form-label">Letterhead Image (PNG only)</label>
                   <input type="file" @change="onLetterheadSelected" accept="image/png" class="form-control">
                   <div v-if="companyForm.letterheadBase64" style="margin-top: 10px;">
@@ -1258,7 +1263,7 @@
 
         <!-- SYSTEM HEALTH MONITOR ROUTE -->
         <div v-if="currentRoute === '#/health'">
-          <HealthDashboard />
+          <HealthDashboard :userRole="currentUser?.role" />
         </div>
 
       </div>
@@ -1408,6 +1413,7 @@ const formatDate = (val) => {
         bgNumber: '',
         bgBankName: '',
         bgAmount: null,
+        commodityTypes: 'Beer,Whisky/Wine/Rum,Cigarette',
         letterheadBase64: ''
       });
 
@@ -2105,6 +2111,10 @@ const formatDate = (val) => {
           state: comp.state || '',
           bankName: comp.bankName || '',
           bankAccount: comp.bankAccount || '',
+          bgNumber: comp.bgNumber || '',
+          bgBankName: comp.bgBankName || '',
+          bgAmount: comp.bgAmount || null,
+          commodityTypes: comp.commodityTypes || 'Beer,Whisky/Wine/Rum,Cigarette',
           letterheadBase64: comp.letterheadBase64 || ''
         };
         showCompanyModal.value = true;

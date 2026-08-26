@@ -9,7 +9,8 @@
             <span class="status-text">{{ statusHeading }}</span>
           </div>
           <h1>System & API Health Observability</h1>
-          <p class="subtitle">Real-time status monitoring for Server, Database, Frontend assets, and API modules</p>
+          <p class="subtitle" v-if="isAdmin">Real-time status monitoring for Server, Database, Frontend assets, and API modules</p>
+          <p class="subtitle" v-else>Real-time operational status monitoring for API subsystems</p>
         </div>
         <div class="header-actions">
           <div class="auto-refresh-toggle">
@@ -36,8 +37,8 @@
       <strong>Health Diagnostic Alert:</strong> {{ errorMessage }}
     </div>
 
-    <!-- METRICS OVERVIEW CARDS -->
-    <div class="metrics-grid">
+    <!-- METRICS OVERVIEW CARDS (ADMIN ONLY) -->
+    <div v-if="isAdmin" class="metrics-grid">
       <!-- CARD 1: SERVER & UPTIME -->
       <div class="metric-card card">
         <div class="metric-icon server">
@@ -135,7 +136,7 @@
       <div class="section-header">
         <div>
           <h2>API Subsystem Operational Matrix</h2>
-          <p class="subtitle">Operational status of all 11 backend service endpoints</p>
+          <p class="subtitle">Operational status of all 11 backend service modules</p>
         </div>
         <span class="badge badge-primary">{{ apiModules.length }} Active Modules</span>
       </div>
@@ -146,9 +147,9 @@
             <tr>
               <th>Status</th>
               <th>Module Name</th>
-              <th>Endpoint Path</th>
+              <th v-if="isAdmin">Endpoint Path</th>
               <th>Description</th>
-              <th>Action</th>
+              <th v-if="isAdmin">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -160,9 +161,9 @@
                 </span>
               </td>
               <td class="font-weight-bold">{{ mod.name }}</td>
-              <td><code>{{ mod.path }}</code></td>
+              <td v-if="isAdmin"><code>{{ mod.path }}</code></td>
               <td class="text-muted">{{ mod.description }}</td>
-              <td>
+              <td v-if="isAdmin">
                 <button @click="testApiModule(mod)" class="btn btn-sm btn-secondary" :disabled="testingModule === mod.path">
                   {{ testingModule === mod.path ? 'Testing...' : 'Test Probe' }}
                 </button>
@@ -173,8 +174,8 @@
       </div>
     </div>
 
-    <!-- PRODUCTION ENDPOINTS REFERENCE -->
-    <div class="card reference-section">
+    <!-- PRODUCTION ENDPOINTS REFERENCE (ADMIN ONLY) -->
+    <div v-if="isAdmin" class="card reference-section">
       <h3>Production Observability Endpoints</h3>
       <p class="subtitle">Configure load balancers and uptime monitoring probes using these URLs</p>
 
@@ -212,6 +213,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { getApiUrl } from '../config.js';
+
+const props = defineProps({
+  userRole: {
+    type: String,
+    default: 'operator'
+  }
+});
+
+const isAdmin = computed(() => props.userRole === 'admin');
 
 const healthData = ref(null);
 const loading = ref(false);

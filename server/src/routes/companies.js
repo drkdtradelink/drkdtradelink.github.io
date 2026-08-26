@@ -95,6 +95,7 @@ router.post('/', async (req, res) => {
         bankBranch,
         customStation,
         subdomain: cleanSubdomain,
+        commodityTypes: commodityTypes || 'Beer,Whisky/Wine/Rum,Cigarette',
         status: 'active',
         bgNumber: bgNumber || null,
         bgBankName: bgBankName || null,
@@ -182,6 +183,7 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
       bankBranch,
       customStation,
       status,
+      commodityTypes,
       letterheadBase64
     } = req.body;
 
@@ -217,6 +219,7 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
         bgBankName: bgBankName !== undefined ? bgBankName : existingCompany.bgBankName,
         bgAmount: bgAmount !== undefined ? (bgAmount ? parseFloat(bgAmount) : null) : existingCompany.bgAmount,
         status: status || existingCompany.status,
+        commodityTypes: commodityTypes !== undefined ? commodityTypes : existingCompany.commodityTypes,
         letterheadBase64: letterheadBase64 !== undefined ? letterheadBase64 : existingCompany.letterheadBase64
       }
     });
@@ -269,17 +272,24 @@ router.delete('/:id', requireAdminPassword, async (req, res) => {
   try {
     const companyId = req.params.id;
     await prisma.$transaction([
+      prisma.gRTransactionItem.deleteMany({ where: { transaction: { companyId } } }),
+      prisma.gRTransaction.deleteMany({ where: { companyId } }),
+      prisma.gRPurchaseItem.deleteMany({ where: { transaction: { companyId } } }),
+      prisma.gRPurchaseTransaction.deleteMany({ where: { companyId } }),
+      prisma.shippingBillItem.deleteMany({ where: { transaction: { companyId } } }),
+      prisma.shippingBillTransaction.deleteMany({ where: { companyId } }),
+      prisma.monthlyReturn.deleteMany({ where: { companyId } }),
+      prisma.auditLog.deleteMany({ where: { companyId } }),
       prisma.user.deleteMany({ where: { companyId } }),
       prisma.dutyRule.deleteMany({ where: { companyId } }),
       prisma.stockItem.deleteMany({ where: { companyId } }),
       prisma.party.deleteMany({ where: { companyId } }),
-      prisma.gRTransaction.deleteMany({ where: { companyId } }),
       prisma.company.delete({ where: { id: companyId } })
     ]);
     res.json({ message: 'Company and all associated records deleted successfully.' });
   } catch (error) {
     console.error('Delete company error:', error);
-    res.status(500).json({ error: 'Failed to delete company.' });
+    res.status(500).json({ error: 'Failed to delete company: ' + (error.message || '') });
   }
 });
 

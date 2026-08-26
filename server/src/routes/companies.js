@@ -52,7 +52,8 @@ router.post('/', async (req, res) => {
       letterheadBase64,
       bgNumber,
       bgBankName,
-      bgAmount
+      bgAmount,
+      commodityTypes
     } = req.body;
 
     if (!legalName || !displayName || !subdomain) {

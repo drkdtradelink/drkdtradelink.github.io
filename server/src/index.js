@@ -25,6 +25,12 @@ const isAllowedOrigin = (origin) => {
   
   // Allow localhost for dev
   if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+
+  // Allow GitHub Pages frontend domain
+  if (/^https:\/\/.*\.github\.io$/.test(origin)) return true;
+
+  // Allow Render backend domains
+  if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return true;
   
   // Allow all Vercel preview & production deployment origins for DRKD Tradelink
   if (/^https:\/\/drkdtradelink-[a-z0-9-]+-drkd\.vercel\.app$/.test(origin)) return true;

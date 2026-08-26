@@ -79,7 +79,7 @@ By default, the Vite dev server will run on `http://localhost:5173`. Requests ar
 #### Step C: Build Frontend (Production & Development Modes)
 Vite will compile and bundle the Single File Components (.vue) directly into the static `portal/` folder.
 
-- **Build for Production** (Uses Production backend: `https://drkdtradelink-github-kmi0vufck-drkd.vercel.app`):
+- **Build for Production** (Uses Production backend: `https://drkdtradelink-github-io.onrender.com`):
   ```bash
   cd portal-vue
   npm run build:prod    # or npm run build
@@ -103,7 +103,7 @@ The portal supports dynamic environment configurations via Vite `.env` files:
 | Environment | Mode | Configuration File | API Base URL |
 | :--- | :--- | :--- | :--- |
 | **Testing / Development** | `development` | `portal-vue/.env.development` | `http://localhost:3000` |
-| **Production** | `production` | `portal-vue/.env.production` | `https://drkdtradelink-github-kmi0vufck-drkd.vercel.app` |
+| **Production** | `production` | `portal-vue/.env.production` | `https://drkdtradelink-github-io.onrender.com` |
 
 Centralized environment resolution logic resides in `portal-vue/src/config.js`. You can override the API endpoint for any build by setting the `VITE_API_BASE_URL` environment variable.
 

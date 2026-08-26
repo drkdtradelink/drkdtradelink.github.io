@@ -17,45 +17,19 @@ const auditLogRoutes = require('./routes/audit-logs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Robust CORS middleware supporting production domain, custom origins, preflights, and security
-const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || '';
-const customAllowedOrigins = allowedOriginsEnv.split(',').map(s => s.trim()).filter(Boolean);
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow non-browser requests (curl, Postman, server-to-server)
-    if (!origin) return callback(null, true);
-
-    // If specific origins are defined in env, restrict to allowed list
-    if (customAllowedOrigins.length > 0) {
-      if (customAllowedOrigins.includes(origin) || customAllowedOrigins.includes('*')) {
-        return callback(null, true);
-      }
-      return callback(new Error('CORS policy error: Origin not allowed.'));
-    }
-
-    // Dynamic origin reflection to prevent browser credential/preflight issues
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Subdomain',
-    'X-Tenant',
-    'X-Admin-Password',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Cache-Control',
-    'Pragma'
-  ],
-  exposedHeaders: ['Content-Disposition']
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// Completely permissive CORS middleware allowing all origins, methods, headers, and preflights
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  res.header('Access-Control-Allow-Origin', origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+app.use(cors());
 
 app.use(express.json());
 

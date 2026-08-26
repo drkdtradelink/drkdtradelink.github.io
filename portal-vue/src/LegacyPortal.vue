@@ -1289,7 +1289,8 @@ const formatDate = (val) => {
       const currentToken = ref(localStorage.getItem('token') || '');
       const currentUser = ref(null);
       const currentCompany = ref(null);
-      const currentRoute = ref(window.location.hash || '#/dashboard');
+      const initialHash = window.location.hash;
+      const currentRoute = ref((initialHash && initialHash !== '#') ? initialHash : (localStorage.getItem('token') ? '#/dashboard' : '#/login'));
       
       const authError = ref('');
       const authLoading = ref(false);
@@ -1602,6 +1603,9 @@ const formatDate = (val) => {
       };
 
       const checkSession = async () => {
+        if (currentRoute.value === '#/health') {
+          return;
+        }
         if (!currentToken.value) {
           navigate('#/login');
           return;
@@ -1616,13 +1620,15 @@ const formatDate = (val) => {
           currentUser.value = data.user;
           currentCompany.value = data.company;
         } catch (err) {
-          handleLogout();
+          if (currentRoute.value !== '#/health') {
+            handleLogout();
+          }
         }
       };
 
       // Data Load routing logic
       const loadRouteData = () => {
-        if (currentRoute.value === '#/login') return;
+        if (currentRoute.value === '#/login' || currentRoute.value === '#/health') return;
         
         checkSession().then(() => {
           if (currentUser.value?.role === 'admin') {

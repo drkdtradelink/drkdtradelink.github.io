@@ -13,43 +13,73 @@ const grDocRoutes = require('./routes/gr-docs');
 const grPurchaseRoutes = require('./routes/gr-purchases');
 const shippingBillRoutes = require('./routes/shipping-bills');
 const auditLogRoutes = require('./routes/audit-logs');
+const monthlyReturnRoutes = require('./routes/monthly-returns');
+const healthRoutes = require('./routes/health');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Completely permissive CORS middleware allowing all origins, methods, headers, and preflights
-// app.use((req, res, next) => {
-//   const origin = req.headers.origin;
-//   res.header('Access-Control-Allow-Origin', origin || '*');
-//   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-//   res.header('Access-Control-Allow-Headers', '*');
-//   res.header('Access-Control-Allow-Credentials', 'true');
-//   if (req.method === 'OPTIONS') {
-//     return res.status(200).end();
-//   }
-//   next();
-// });
-// app.use(cors());
+// Production-safe dynamic CORS origin validator
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // Allow non-browser clients (curl, Postman, server-to-server)
+  
+  // Allow localhost for dev
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  
+  // Allow all Vercel preview & production deployment origins for DRKD Tradelink
+  if (/^https:\/\/drkdtradelink-[a-z0-9-]+-drkd\.vercel\.app$/.test(origin)) return true;
+  if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return true;
+  
+  return false;
+};
 
-app.use(cors({
-  origin: "*"
-  // origin: true,
-  // credentials: true,
-  // methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  // allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Subdomain',
+    'X-Tenant',
+    'X-Admin-Password',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  maxAge: 86400 // Cache preflight response in browser for 24 hours
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
+
+// Preflight OPTIONS middleware compatible with Express 5
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin;
+    if (isAllowedOrigin(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Subdomain, X-Tenant, X-Admin-Password, X-Requested-With, Accept, Origin');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+    return res.status(204).end();
+  }
+  next();
+});
 
 app.use(express.json());
 
-// API Routes
-const monthlyReturnRoutes = require('./routes/monthly-returns');
-
-const healthRoutes = require('./routes/health');
-
+// Health check endpoints
 app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/users', userRoutes);
@@ -62,19 +92,23 @@ app.use('/api/shipping-bills', shippingBillRoutes);
 app.use('/api/monthly-returns', monthlyReturnRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 
-// Serve static files for the portal frontend
-// Root is drkdtradelink.github.io, so portal lives in ../portal relative to this file's folder (src)
+// Serve static files for the portal frontend when running locally
 const portalPath = path.join(__dirname, '../../portal');
 app.use('/portal', express.static(portalPath));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err.stack);
-  res.status(500).json({ error: 'Something went wrong on the server.' });
+  res.status(500).json({ error: err.message || 'Something went wrong on the server.' });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Documents Portal frontend served at http://localhost:${PORT}/portal/`);
-});
+// Export Express app for Vercel serverless function deployment
+module.exports = app;
+
+// Only listen on PORT when running directly in Node (e.g. node src/index.js or npm start)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Documents Portal frontend served at http://localhost:${PORT}/portal/`);
+  });
+}

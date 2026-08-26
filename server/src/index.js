@@ -18,18 +18,27 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Completely permissive CORS middleware allowing all origins, methods, headers, and preflights
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  res.header('Access-Control-Allow-Origin', origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-app.use(cors());
+// app.use((req, res, next) => {
+//   const origin = req.headers.origin;
+//   res.header('Access-Control-Allow-Origin', origin || '*');
+//   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+//   res.header('Access-Control-Allow-Headers', '*');
+//   res.header('Access-Control-Allow-Credentials', 'true');
+//   if (req.method === 'OPTIONS') {
+//     return res.status(200).end();
+//   }
+//   next();
+// });
+// app.use(cors());
+
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('*', cors());
 
 app.use(express.json());
 

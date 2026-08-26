@@ -68,22 +68,44 @@ npm run dev
 The backend server runs on `http://localhost:3000`.
 
 #### Step B: Setup & Run Frontend (Development)
-To run the frontend with hot-reload for development:
+To run the frontend with hot-reload for development (uses Testing environment `http://localhost:3000`):
 ```bash
 cd portal-vue
 npm install
 npm run dev
 ```
-By default, the Vite dev server will run on `http://localhost:5173`. Configure your client to proxy requests to the backend server at `http://localhost:3000`.
+By default, the Vite dev server will run on `http://localhost:5173`. Requests are directed to `http://localhost:3000` as defined in `portal-vue/.env.development`.
 
-#### Step C: Build Frontend (Production)
-Vite will compile and bundle the Single File Components (.vue) directly into the static `portal/` folder which is served by the Express backend:
-```bash
-cd portal-vue
-npm run build
-```
+#### Step C: Build Frontend (Production & Development Modes)
+Vite will compile and bundle the Single File Components (.vue) directly into the static `portal/` folder.
+
+- **Build for Production** (Uses Production backend: `https://drkdtradelink-github-kmi0vufck-drkd.vercel.app`):
+  ```bash
+  cd portal-vue
+  npm run build:prod    # or npm run build
+  ```
+
+- **Build for Development / Testing** (Uses Localhost backend: `http://localhost:3000`):
+  ```bash
+  cd portal-vue
+  npm run build:dev
+  ```
+
 Once built, you can access the portal directly via the backend server at:
 [http://localhost:3000/portal/](http://localhost:3000/portal/)
+
+---
+
+### 🌐 Environment Configuration (`portal-vue`)
+
+The portal supports dynamic environment configurations via Vite `.env` files:
+
+| Environment | Mode | Configuration File | API Base URL |
+| :--- | :--- | :--- | :--- |
+| **Testing / Development** | `development` | `portal-vue/.env.development` | `http://localhost:3000` |
+| **Production** | `production` | `portal-vue/.env.production` | `https://drkdtradelink-github-kmi0vufck-drkd.vercel.app` |
+
+Centralized environment resolution logic resides in `portal-vue/src/config.js`. You can override the API endpoint for any build by setting the `VITE_API_BASE_URL` environment variable.
 
 ---
 
@@ -142,6 +164,72 @@ The **Documents Portal** is a full-featured multi-company enterprise document ma
 - **Auto-Fetched Present Duty Balance (INR)**: Auto-calculates total remaining duty value across all active warehouse stock items.
 - **Unified Document Preview**: Generate and preview document packages inside a single tabbed interface.
 - **Stock Validation**: Prevents drawing items beyond available warehouse stock. Decrements stock levels when transactions are finalized.
+
+### 🟢 Health Monitoring & Production Observability (`/health`)
+
+The platform features unified health check endpoints and an interactive frontend telemetry dashboard to monitor server metrics, SQLite database connectivity, static frontend assets, and operational status for all 11 API modules in production.
+
+#### Production Health Endpoints
+- **`GET /health` & `GET /api/health`**: Primary health probe for cloud uptime checkers (Render, Railway, AWS ALB, UptimeRobot, Datadog). Returns process uptime, Node version, heap memory stats, live Prisma database query latency, static `portal/index.html` build verification, and individual API module statuses. Returns HTTP `200` when operational or HTTP `503` if database connection fails.
+- **`GET /api/health/db`**: Dedicated lightweight database probe testing Prisma connection status, query latency (ms), and active companies count.
+- **`GET /api/health/apis`**: Inventory of all 11 API route modules (`auth`, `companies`, `users`, `parties`, `stock`, `duty-rules`, `gr-docs`, `gr-purchases`, `shipping-bills`, `monthly-returns`, `audit-logs`).
+- **`GET /api/health/frontend`**: Verifies static frontend portal build asset availability.
+
+#### Visual Telemetry Dashboard (`/portal/#/health`)
+An interactive dashboard is built directly into the Documents Portal:
+- **Public & Authenticated Access**: Accessible via the Portal sidebar under **System & API Health** or directly via login card link (`#/health`).
+- **Live Diagnostics**: Features metrics cards (Server Uptime, Database Query Latency, Heap Memory, Portal Build status), API module test probes, and auto-refresh telemetry.
+
+#### Sample `/health` Response Payload
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-08-26T12:00:00.000Z",
+  "service": "DRKD Tradelink Documents Portal API",
+  "version": "1.0.0",
+  "environment": "production",
+  "system": {
+    "uptimeSeconds": 14200,
+    "uptimeFormatted": "0d 3h 56m 40s",
+    "nodeVersion": "v20.10.0",
+    "platform": "linux",
+    "memoryUsage": {
+      "rssMb": "64.20",
+      "heapTotalMb": "32.10",
+      "heapUsedMb": "24.50"
+    }
+  },
+  "database": {
+    "status": "ok",
+    "connected": true,
+    "latencyMs": 4,
+    "companyCount": 2,
+    "error": null
+  },
+  "frontend": {
+    "status": "ok",
+    "buildExists": true,
+    "portalPath": "/portal"
+  },
+  "apis": {
+    "status": "ok",
+    "totalModules": 11,
+    "modules": [
+      { "name": "Auth Module", "path": "/api/auth", "status": "ok" },
+      { "name": "Companies Module", "path": "/api/companies", "status": "ok" },
+      { "name": "Users Module", "path": "/api/users", "status": "ok" },
+      { "name": "Parties Module", "path": "/api/parties", "status": "ok" },
+      { "name": "Stock Module", "path": "/api/stock", "status": "ok" },
+      { "name": "Duty Rules Module", "path": "/api/duty-rules", "status": "ok" },
+      { "name": "GR Docs Module", "path": "/api/gr-docs", "status": "ok" },
+      { "name": "GR Purchases Module", "path": "/api/gr-purchases", "status": "ok" },
+      { "name": "Shipping Bills Module", "path": "/api/shipping-bills", "status": "ok" },
+      { "name": "Monthly Returns Module", "path": "/api/monthly-returns", "status": "ok" },
+      { "name": "Audit Logs Module", "path": "/api/audit-logs", "status": "ok" }
+    ]
+  }
+}
+```
 
 ### Default Seeding Credentials
 When testing locally, you can simulate company subdomains by using the `X-Subdomain` header or typing the subdomain slug in the login card.

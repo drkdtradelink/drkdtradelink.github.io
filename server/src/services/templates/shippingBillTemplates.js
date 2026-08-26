@@ -35,8 +35,8 @@ const numberToWords = (amount) => {
 };
 
 const pageStyle = `
-  body { font-family: 'Times New Roman', serif; font-size: 11px; line-height: 1.4; margin: 0; padding: 0; color: #000; }
-  .page { padding: 10mm 12mm; box-sizing: border-box; page-break-after: always; min-height: 277mm; }
+  html, body { font-family: 'Times New Roman', serif; font-size: 11px; line-height: 1.4; margin: 0; padding: 0; background-color: #ffffff !important; color: #000000 !important; }
+  .page { padding: 10mm 12mm; box-sizing: border-box; page-break-after: always; min-height: 277mm; background-color: #ffffff !important; color: #000000 !important; }
   .page:last-child { page-break-after: auto; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #000; padding: 3px 5px; vertical-align: top; font-size: 11px; }

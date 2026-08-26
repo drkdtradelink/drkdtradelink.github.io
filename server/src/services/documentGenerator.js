@@ -651,13 +651,14 @@ function renderStockList(transaction, company, items) {
 function renderDocument(documentType, transaction, company, party, items, totals) {
   const cssStyles = `
     <style>
-      body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #ffffff; color: #000000; }
+      html, body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #ffffff !important; color: #000000 !important; }
       .landscape-page {
         width: 297mm;
         min-height: 210mm;
         box-sizing: border-box;
         padding: 10mm 15mm;
-        background: white;
+        background-color: #ffffff !important;
+        color: #000000 !important;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -667,7 +668,8 @@ function renderDocument(documentType, transaction, company, party, items, totals
         min-height: 297mm;
         box-sizing: border-box;
         padding: 10mm 15mm;
-        background: white;
+        background-color: #ffffff !important;
+        color: #000000 !important;
         position: relative;
         display: flex;
         flex-direction: column;

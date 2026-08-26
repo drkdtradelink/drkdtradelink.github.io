@@ -35,8 +35,8 @@ const numberToWords = (amount) => {
 };
 
 const pageStyle = `
-  body { font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.6; margin: 0; padding: 0; color: #000; }
-  .page { padding: 25mm 20mm; min-height: 277mm; box-sizing: border-box; page-break-after: always; }
+  html, body { font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.6; margin: 0; padding: 0; background-color: #ffffff !important; color: #000000 !important; }
+  .page { padding: 25mm 20mm; min-height: 277mm; box-sizing: border-box; page-break-after: always; background-color: #ffffff !important; color: #000000 !important; }
   .page:last-child { page-break-after: auto; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #000; padding: 5px 7px; vertical-align: top; }
@@ -229,7 +229,8 @@ function renderBondSubmissionLetter(tx, company, vendor, items) {
       <p style="margin-left:60px;">a. Duty of existing Stock: Rs. ____________</p>
       <p style="margin-left:60px;">b. Add this consignment: Rs. <b>${totalDuty.toFixed(2)}</b></p>
       <p style="margin-left:60px;">c. Total: Rs. ____________</p>
-      <p style="margin-left:60px;">d. Total Bank Guarantee: Rs. ____________</p>
+      <p style="margin-left:60px;">d. Total Bank Guarantee: Rs. <b>${company.bgAmount ? Number(company.bgAmount).toLocaleString('en-IN') : '50,00,000'}</b></p>
+      ${company.bgNumber ? `<p style="margin-left:60px;">${company.bgBankName || 'Bank'} BG No.: <b>${company.bgNumber}</b> - Rs. ${company.bgAmount ? Number(company.bgAmount).toLocaleString('en-IN') : '50,00,000'}/-</p>` : ''}
       <br>
       <p>
         Kindly accept the triple duty bond and grant us necessary permission for warehousing our bonded goods.

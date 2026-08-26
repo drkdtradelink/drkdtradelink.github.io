@@ -64,7 +64,25 @@
         <button type="submit" class="btn btn-primary w-full" :disabled="authLoading">
           {{ authLoading ? 'Signing in...' : 'Sign In' }}
         </button>
+        <div style="margin-top: 16px; text-align: center;">
+          <a @click.prevent="navigate('#/health')" href="#/health" style="font-size: 13px; color: var(--primary, #2563eb); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
+            Check System & API Health
+          </a>
+        </div>
       </form>
+    </div>
+  </div>
+
+  <!-- PUBLIC HEALTH VIEW (UNAUTHENTICATED) -->
+  <div v-else-if="currentRoute === '#/health' && !currentToken" style="min-height: 100vh; background: var(--bg-body, #f8fafc); padding: 40px 20px;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <HealthDashboard />
+      <div style="text-align: center; margin-top: 24px;">
+        <button type="button" @click="navigate('#/login')" class="btn btn-secondary">
+          &larr; Back to Login
+        </button>
+      </div>
     </div>
   </div>
 
@@ -97,6 +115,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M12 12v6M9 15l3-3 3 3"/></svg>
           Pink Shipping Bills
         </a>
+        <a @click="navigate('#/monthly-returns')" class="nav-item" :class="{ active: currentRoute === '#/monthly-returns' }">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/></svg>
+          Monthly Returns
+        </a>
         <a @click="navigate('#/stock')" class="nav-item" :class="{ active: currentRoute === '#/stock' }">
           <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-18v10l-8 4m0-4L4 7m8 4v10M4 7v10l8 4"></path></svg>
           Stock Items
@@ -108,6 +130,10 @@
         <a @click="navigate('#/profile')" class="nav-item" :class="{ active: currentRoute === '#/profile' }">
           <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
           Profile Settings
+        </a>
+        <a @click="navigate('#/health')" class="nav-item" :class="{ active: currentRoute === '#/health' }">
+          <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          System & API Health
         </a>
 
         <!-- System Administration Section (Visible to 'admin' role) -->
@@ -164,6 +190,10 @@
         
         <div v-if="currentRoute === '#/shipping-bills'">
           <ShippingBills :token="currentToken" :current-user="currentUser" :consignees="allParties.filter(p => p.partyType === 'Consignee' || p.partyType === 'Both')" :all-companies="allCompanies" />
+        </div>
+
+        <div v-if="currentRoute === '#/monthly-returns'">
+          <MonthlyReturns :token="currentToken" :current-user="currentUser" :all-companies="allCompanies" />
         </div>
 
         <!-- DASHBOARD ROUTE -->
@@ -524,7 +554,7 @@
                   </div>
                 </div>
                 <div class="preview-frame-container">
-                  <iframe :src="'/api/gr-docs/' + selectedGRDoc?.transaction?.id + '/preview/' + activePreviewDoc + '?token=' + currentToken" class="preview-frame" id="docPreviewFrame"></iframe>
+                  <iframe :src="getApiUrl('/api/gr-docs/' + selectedGRDoc?.transaction?.id + '/preview/' + activePreviewDoc + '?token=' + currentToken)" class="preview-frame" id="docPreviewFrame"></iframe>
                 </div>
               </div>
             </div>
@@ -915,6 +945,20 @@
                     <input type="text" v-model="companyForm.bankAccount" class="form-control">
                   </div>
                 </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Bank Guarantee Number</label>
+                    <input type="text" v-model="companyForm.bgNumber" placeholder="e.g. 00831ILG001225" class="form-control">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">BG Issuing Bank Name</label>
+                    <input type="text" v-model="companyForm.bgBankName" placeholder="e.g. Punjab National Bank" class="form-control">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Total Bank Guarantee Amount (INR)</label>
+                  <input type="number" v-model="companyForm.bgAmount" placeholder="e.g. 5000000" class="form-control">
+                </div>
                 <div class="form-group">
                   <label class="form-label">Letterhead Image (PNG only)</label>
                   <input type="file" @change="onLetterheadSelected" accept="image/png" class="form-control">
@@ -1212,6 +1256,11 @@
           </div>
         </div>
 
+        <!-- SYSTEM HEALTH MONITOR ROUTE -->
+        <div v-if="currentRoute === '#/health'">
+          <HealthDashboard />
+        </div>
+
       </div>
     </div>
   </div>
@@ -1223,8 +1272,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import jsPDF from 'jspdf';
+import { getApiUrl } from './config.js';
 import GRPurchases from './components/GRPurchases.vue';
 import ShippingBills from './components/ShippingBills.vue';
+import MonthlyReturns from './components/MonthlyReturns.vue';
+import HealthDashboard from './components/HealthDashboard.vue';
 
 const formatDate = (val) => {
   if (!val) return '';
@@ -1352,6 +1404,9 @@ const formatDate = (val) => {
         state: '',
         bankName: '',
         bankAccount: '',
+        bgNumber: '',
+        bgBankName: '',
+        bgAmount: null,
         letterheadBase64: ''
       });
 
@@ -1501,6 +1556,7 @@ const formatDate = (val) => {
           case '#/stock': return 'Inventory / Warehouse Stock';
           case '#/parties': return 'Parties / Consignees Registry';
           case '#/profile': return 'My Account Profile Settings';
+          case '#/health': return 'System & API Operational Health';
           case '#/admin/companies': return 'Super Admin - Companies Tenant Registry';
           case '#/admin/users': return 'Super Admin - User Accounts Directory';
           case '#/admin/duty-rules': return 'Super Admin - Seeded Duty Calculation Rules';
@@ -1516,7 +1572,7 @@ const formatDate = (val) => {
         authLoading.value = true;
         authError.value = '';
         try {
-          const res = await fetch('/api/auth/login', {
+          const res = await fetch(getApiUrl('/api/auth/login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(loginForm.value)
@@ -1551,7 +1607,7 @@ const formatDate = (val) => {
           return;
         }
         try {
-          const res = await fetch('/api/auth/me', {
+          const res = await fetch(getApiUrl('/api/auth/me'), {
             headers: getHeaders()
           });
           const data = await res.json();
@@ -1618,27 +1674,27 @@ const formatDate = (val) => {
 
       // Fetch APIs
       const fetchCompanies = async () => {
-        const res = await fetch('/api/companies', { headers: getHeaders() });
+        const res = await fetch(getApiUrl('/api/companies'), { headers: getHeaders() });
         if (res.ok) allCompanies.value = await res.json();
       };
 
       const fetchUsers = async () => {
-        const res = await fetch('/api/users', { headers: getHeaders() });
+        const res = await fetch(getApiUrl('/api/users'), { headers: getHeaders() });
         if (res.ok) allUsers.value = await res.json();
       };
 
       const fetchParties = async () => {
-        const res = await fetch('/api/parties', { headers: getHeaders() });
+        const res = await fetch(getApiUrl('/api/parties'), { headers: getHeaders() });
         if (res.ok) allParties.value = await res.json();
       };
 
       const fetchStock = async () => {
-        const res = await fetch('/api/stock', { headers: getHeaders() });
+        const res = await fetch(getApiUrl('/api/stock'), { headers: getHeaders() });
         if (res.ok) allStock.value = await res.json();
       };
 
       const fetchRules = async () => {
-        const res = await fetch('/api/duty-rules', { headers: getHeaders() });
+        const res = await fetch(getApiUrl('/api/duty-rules'), { headers: getHeaders() });
         if (res.ok) allRules.value = await res.json();
       };
 
@@ -1647,7 +1703,7 @@ const formatDate = (val) => {
           search: grDocsFilter.value.search,
           status: grDocsFilter.value.status
         }).toString();
-        const res = await fetch(`/api/gr-docs?${query}`, { headers: getHeaders() });
+        const res = await fetch(getApiUrl(`/api/gr-docs?${query}`), { headers: getHeaders() });
         if (res.ok) {
           const data = await res.json();
           allGRDocs.value = data.transactions;
@@ -1656,7 +1712,7 @@ const formatDate = (val) => {
       };
 
       const fetchSingleGRDoc = async (id) => {
-        const res = await fetch(`/api/gr-docs/${id}`, { headers: getHeaders() });
+        const res = await fetch(getApiUrl(`/api/gr-docs/${id}`), { headers: getHeaders() });
         if (res.ok) {
           selectedGRDoc.value = await res.json();
           activePreviewDoc.value = 'gr-front';
@@ -1672,7 +1728,7 @@ const formatDate = (val) => {
 
       const updateDocumentDates = async () => {
         if (!selectedGRDoc.value?.transaction?.id) return;
-        const res = await fetch(`/api/gr-docs/${selectedGRDoc.value.transaction.id}/dates`, {
+        const res = await fetch(getApiUrl(`/api/gr-docs/${selectedGRDoc.value.transaction.id}/dates`), {
           method: 'PUT',
           headers: getHeaders(),
           body: JSON.stringify({
@@ -1692,7 +1748,7 @@ const formatDate = (val) => {
       const fetchNextNumbers = async () => {
         const targetId = currentUser.value?.role === 'admin' ? grForm.value.companyId : currentUser.value?.companyId;
         if (!targetId) return;
-        const res = await fetch(`/api/gr-docs/next-numbers?companyId=${targetId}`, { headers: getHeaders() });
+        const res = await fetch(getApiUrl(`/api/gr-docs/next-numbers?companyId=${targetId}`), { headers: getHeaders() });
         if (res.ok) {
           const data = await res.json();
           grForm.value.invoiceNumber = data.nextInvoiceNumber;
@@ -1704,7 +1760,7 @@ const formatDate = (val) => {
         const targetId = currentUser.value?.role === 'admin' ? grForm.value.companyId : currentUser.value?.companyId;
         if (!targetId) return;
         const rate = grForm.value.exchangeRate || 84.5;
-        const res = await fetch(`/api/stock/present-duty-balance?exchangeRate=${rate}&companyId=${targetId}`, { headers: getHeaders() });
+        const res = await fetch(getApiUrl(`/api/stock/present-duty-balance?exchangeRate=${rate}&companyId=${targetId}`), { headers: getHeaders() });
         if (res.ok) {
           const data = await res.json();
           grForm.value.presentDutyBalance = data.totalDutyBalanceINR;
@@ -1712,7 +1768,7 @@ const formatDate = (val) => {
       };
 
       const fetchAuditLogs = async () => {
-        const res = await fetch('/api/audit-logs', { headers: getHeaders() });
+        const res = await fetch(getApiUrl('/api/audit-logs'), { headers: getHeaders() });
         if (res.ok) {
           allAuditLogs.value = await res.json();
         }
@@ -1734,7 +1790,7 @@ const formatDate = (val) => {
           message: `Are you sure you want to set status of company "${company.displayName}" to ${nextStatus.toUpperCase()}? System Admin password required:`,
           onConfirm: async (val, adminPassword) => {
             if (!adminPassword) return;
-            const res = await fetch(`/api/companies/${company.id}`, {
+            const res = await fetch(getApiUrl(`/api/companies/${company.id}`), {
               method: 'PUT',
               headers: {
                 ...getHeaders(),
@@ -1759,7 +1815,7 @@ const formatDate = (val) => {
           message: `Are you sure you want to set status of user "${user.name}" to ${nextStatus.toUpperCase()}? System Admin password required:`,
           onConfirm: async (val, adminPassword) => {
             if (!adminPassword) return;
-            const res = await fetch(`/api/users/${user.id}`, {
+            const res = await fetch(getApiUrl(`/api/users/${user.id}`), {
               method: 'PUT',
               headers: {
                 ...getHeaders(),
@@ -1784,7 +1840,7 @@ const formatDate = (val) => {
           message: `Are you sure you want to set status of duty rule "${rule.name}" to ${nextStatus.toUpperCase()}? System Admin password required:`,
           onConfirm: async (val, adminPassword) => {
             if (!adminPassword) return;
-            const res = await fetch(`/api/duty-rules/${rule.id}`, {
+            const res = await fetch(getApiUrl(`/api/duty-rules/${rule.id}`), {
               method: 'PUT',
               headers: {
                 ...getHeaders(),
@@ -1807,7 +1863,7 @@ const formatDate = (val) => {
         const url = isEditing ? `/api/stock/${editingStockId.value}` : '/api/stock';
         const method = isEditing ? 'PUT' : 'POST';
 
-        const res = await fetch(url, {
+        const res = await fetch(getApiUrl(url), {
           method,
           headers: getHeaders(),
           body: JSON.stringify(stockForm.value)
@@ -1844,7 +1900,7 @@ const formatDate = (val) => {
         const url = isEditing ? `/api/parties/${editingPartyId.value}` : '/api/parties';
         const method = isEditing ? 'PUT' : 'POST';
 
-        const res = await fetch(url, {
+        const res = await fetch(getApiUrl(url), {
           method,
           headers: getHeaders(),
           body: JSON.stringify(partyForm.value)
@@ -1940,7 +1996,7 @@ const formatDate = (val) => {
             const url = isEditing ? `/api/duty-rules/${editingRuleId.value}` : '/api/duty-rules';
             const method = isEditing ? 'PUT' : 'POST';
             
-            const res = await fetch(url, {
+            const res = await fetch(getApiUrl(url), {
               method,
               headers: {
                 ...getHeaders(),
@@ -1974,7 +2030,7 @@ const formatDate = (val) => {
             const url = isEditing ? `/api/companies/${editingCompanyId.value}` : '/api/companies';
             const method = isEditing ? 'PUT' : 'POST';
             
-            const res = await fetch(url, {
+            const res = await fetch(getApiUrl(url), {
               method,
               headers: {
                 ...getHeaders(),
@@ -2008,7 +2064,7 @@ const formatDate = (val) => {
             const url = isEditing ? `/api/users/${editingUserId.value}` : '/api/users';
             const method = isEditing ? 'PUT' : 'POST';
             
-            const res = await fetch(url, {
+            const res = await fetch(getApiUrl(url), {
               method,
               headers: {
                 ...getHeaders(),
@@ -2053,7 +2109,7 @@ const formatDate = (val) => {
           title: 'Delete Company Tenant',
           message: `WARNING: Are you sure you want to permanently delete company "${comp.displayName}"? This will also delete all of its users, parties, stock items, and GR transactions. Please verify your system administrator password:`,
           onConfirm: async (val, adminPassword) => {
-            const res = await fetch(`/api/companies/${comp.id}`, {
+            const res = await fetch(getApiUrl(`/api/companies/${comp.id}`), {
               method: 'DELETE',
               headers: {
                 ...getHeaders(),
@@ -2087,7 +2143,7 @@ const formatDate = (val) => {
           title: 'Delete User Account',
           message: `Are you sure you want to permanently delete the user account for "${u.name}"? Please verify your system administrator password:`,
           onConfirm: async (val, adminPassword) => {
-            const res = await fetch(`/api/users/${u.id}`, {
+            const res = await fetch(getApiUrl(`/api/users/${u.id}`), {
               method: 'DELETE',
               headers: {
                 ...getHeaders(),
@@ -2116,7 +2172,7 @@ const formatDate = (val) => {
               alert('New password cannot be empty.');
               return;
             }
-            const res = await fetch(`/api/users/${u.id}`, {
+            const res = await fetch(getApiUrl(`/api/users/${u.id}`), {
               method: 'PUT',
               headers: {
                 ...getHeaders(),
@@ -2151,7 +2207,7 @@ const formatDate = (val) => {
           title: 'Delete Duty Rule',
           message: `Are you sure you want to permanently delete duty calculation rule "${rule.name}"? Please verify your system administrator password:`,
           onConfirm: async (val, adminPassword) => {
-            const res = await fetch(`/api/duty-rules/${rule.id}`, {
+            const res = await fetch(getApiUrl(`/api/duty-rules/${rule.id}`), {
               method: 'DELETE',
               headers: {
                 ...getHeaders(),
@@ -2195,7 +2251,7 @@ const formatDate = (val) => {
           payload.password = profileForm.value.password;
         }
 
-        const res = await fetch(`/api/users/${currentUser.value.id}`, {
+        const res = await fetch(getApiUrl(`/api/users/${currentUser.value.id}`), {
           method: 'PUT',
           headers: getHeaders(),
           body: JSON.stringify(payload)
@@ -2302,7 +2358,7 @@ const formatDate = (val) => {
         const url = isEditing ? `/api/gr-docs/${editingGRDocId.value}` : '/api/gr-docs';
         const method = isEditing ? 'PUT' : 'POST';
 
-        const res = await fetch(url, {
+        const res = await fetch(getApiUrl(url), {
           method,
           headers: getHeaders(),
           body: JSON.stringify(grForm.value)
@@ -2329,7 +2385,7 @@ const formatDate = (val) => {
           confirmMsg,
           async () => {
             const url = `/api/gr-docs/${id}/generate${force ? '?force=true' : ''}`;
-            const res = await fetch(url, {
+            const res = await fetch(getApiUrl(url), {
               method: 'POST',
               headers: getHeaders()
             });
@@ -2376,7 +2432,7 @@ const formatDate = (val) => {
           'Cancel GR Document Package',
           `Are you sure you want to cancel GR "${tx.grNumber}"? This will reverse all stock and duty balance deductions. This action is permanent but the record will remain in the history as CANCELLED.`,
           async () => {
-            const res = await fetch(`/api/gr-docs/${tx.id}/cancel`, {
+            const res = await fetch(getApiUrl(`/api/gr-docs/${tx.id}/cancel`), {
               method: 'POST',
               headers: getHeaders()
             });
@@ -2839,14 +2895,14 @@ const formatDate = (val) => {
       color: white;
     }
     .preview-viewer {
-      background-color: #64748b;
+      background-color: #f1f5f9;
       display: flex;
       flex-direction: column;
       height: 100%;
     }
     .preview-toolbar {
       height: 50px;
-      background-color: #f1f5f9;
+      background-color: #ffffff;
       border-bottom: 1px solid #cbd5e1;
       display: flex;
       align-items: center;
@@ -2859,13 +2915,14 @@ const formatDate = (val) => {
       overflow-y: auto;
       display: flex;
       justify-content: center;
+      background-color: #f1f5f9;
     }
     .preview-frame {
       width: 100%;
       height: 100%;
       border: 1px solid #94a3b8;
       box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-      background-color: white;
+      background-color: #ffffff !important;
     }
 
     /* Dashboard grids */

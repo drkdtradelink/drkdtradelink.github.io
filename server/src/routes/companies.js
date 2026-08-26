@@ -49,7 +49,10 @@ router.post('/', async (req, res) => {
       bankBranch,
       customStation,
       subdomain,
-      letterheadBase64
+      letterheadBase64,
+      bgNumber,
+      bgBankName,
+      bgAmount
     } = req.body;
 
     if (!legalName || !displayName || !subdomain) {
@@ -93,6 +96,9 @@ router.post('/', async (req, res) => {
         customStation,
         subdomain: cleanSubdomain,
         status: 'active',
+        bgNumber: bgNumber || null,
+        bgBankName: bgBankName || null,
+        bgAmount: bgAmount ? parseFloat(bgAmount) : null,
         letterheadBase64: letterheadBase64 || null
       }
     });
@@ -207,6 +213,9 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
         bankIfsc: bankIfsc !== undefined ? bankIfsc : existingCompany.bankIfsc,
         bankBranch: bankBranch !== undefined ? bankBranch : existingCompany.bankBranch,
         customStation: customStation !== undefined ? customStation : existingCompany.customStation,
+        bgNumber: bgNumber !== undefined ? bgNumber : existingCompany.bgNumber,
+        bgBankName: bgBankName !== undefined ? bgBankName : existingCompany.bgBankName,
+        bgAmount: bgAmount !== undefined ? (bgAmount ? parseFloat(bgAmount) : null) : existingCompany.bgAmount,
         status: status || existingCompany.status,
         letterheadBase64: letterheadBase64 !== undefined ? letterheadBase64 : existingCompany.letterheadBase64
       }

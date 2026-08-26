@@ -158,8 +158,8 @@
       </div>
 
       <!-- Embedded Iframe -->
-      <div style="flex: 1; position: relative; background: #525659;">
-        <iframe id="grPreviewFrame" :src="'/api/gr-purchases/' + activeTx?.id + '/preview/' + activeDoc + '?token=' + token" style="width: 100%; height: 100%; border: none;"></iframe>
+      <div style="flex: 1; position: relative; background: #f1f5f9; display: flex; justify-content: center; align-items: center; padding: 12px; overflow: auto;">
+        <iframe id="grPreviewFrame" :src="getApiUrl('/api/gr-purchases/' + activeTx?.id + '/preview/' + activeDoc + '?token=' + token)" style="width: 100%; height: 100%; border: none; background-color: #ffffff; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"></iframe>
       </div>
 
     </div>
@@ -168,6 +168,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { getApiUrl } from '../config.js';
 
 const props = defineProps({
   token: String,
@@ -207,13 +208,13 @@ const getHeaders = () => ({
 const fetchNextNumber = async () => {
   let url = '/api/gr-purchases/next-number';
   if (form.value.companyId) url += `?companyId=${form.value.companyId}`;
-  const res = await fetch(url, { headers: getHeaders() });
+  const res = await fetch(getApiUrl(url), { headers: getHeaders() });
   const data = await res.json();
   if (data.nextNumber) form.value.grPurchaseNumber = data.nextNumber;
 };
 
 const loadTransactions = async () => {
-  const res = await fetch('/api/gr-purchases', { headers: getHeaders() });
+  const res = await fetch(getApiUrl('/api/gr-purchases'), { headers: getHeaders() });
   const data = await res.json();
   transactions.value = data.transactions || [];
 };
@@ -261,7 +262,7 @@ const recalcAll = () => {
 const createTransaction = async () => {
   loading.value = true;
   try {
-    const res = await fetch('/api/gr-purchases', {
+    const res = await fetch(getApiUrl('/api/gr-purchases'), {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(form.value)
@@ -284,7 +285,7 @@ const finalize = async (id) => {
   if (!confirm('Are you sure you want to finalize? This will lock the document and add stock to inventory.')) return;
   loading.value = true;
   try {
-    const res = await fetch(`/api/gr-purchases/${id}/finalize`, { method: 'POST', headers: getHeaders() });
+    const res = await fetch(getApiUrl(`/api/gr-purchases/${id}/finalize`), { method: 'POST', headers: getHeaders() });
     if (res.ok) {
       alert('Finalized successfully!');
       loadTransactions();

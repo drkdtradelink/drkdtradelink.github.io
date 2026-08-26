@@ -176,8 +176,8 @@
       </div>
 
       <!-- Embedded Iframe -->
-      <div style="flex: 1; position: relative; background: #525659;">
-        <iframe id="sbPreviewFrame" :src="'/api/shipping-bills/' + activeTx?.id + '/preview/' + activeDoc + '?token=' + token" style="width: 100%; height: 100%; border: none;"></iframe>
+      <div style="flex: 1; position: relative; background: #f1f5f9; display: flex; justify-content: center; align-items: center; padding: 12px; overflow: auto;">
+        <iframe id="sbPreviewFrame" :src="getApiUrl('/api/shipping-bills/' + activeTx?.id + '/preview/' + activeDoc + '?token=' + token)" style="width: 100%; height: 100%; border: none; background-color: #ffffff; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"></iframe>
       </div>
 
     </div>
@@ -186,6 +186,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { getApiUrl } from '../config.js';
 
 const props = defineProps({
   token: String,
@@ -238,19 +239,19 @@ const getHeaders = () => ({
 const fetchNextNumber = async () => {
   let url = '/api/shipping-bills/next-number';
   if (form.value.companyId) url += `?companyId=${form.value.companyId}`;
-  const res = await fetch(url, { headers: getHeaders() });
+  const res = await fetch(getApiUrl(url), { headers: getHeaders() });
   const data = await res.json();
   if (data.nextNumber) form.value.sbNumber = data.nextNumber;
 };
 
 const loadStock = async () => {
-  const res = await fetch('/api/stock-items?status=active', { headers: getHeaders() });
+  const res = await fetch(getApiUrl('/api/stock-items?status=active'), { headers: getHeaders() });
   const data = await res.json();
   availableStock.value = (data.stockItems || []).filter(s => s.remainingQuantity > 0);
 };
 
 const loadTransactions = async () => {
-  const res = await fetch('/api/shipping-bills', { headers: getHeaders() });
+  const res = await fetch(getApiUrl('/api/shipping-bills'), { headers: getHeaders() });
   const data = await res.json();
   transactions.value = data.transactions || [];
 };
@@ -292,7 +293,7 @@ const calcFOBINR = (item) => {
 const createTransaction = async () => {
   loading.value = true;
   try {
-    const res = await fetch('/api/shipping-bills', {
+    const res = await fetch(getApiUrl('/api/shipping-bills'), {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
@@ -322,7 +323,7 @@ const finalize = async (id) => {
   if (!confirm('Are you sure? This will deduct stock and lock the document.')) return;
   loading.value = true;
   try {
-    const res = await fetch(`/api/shipping-bills/${id}/finalize`, { method: 'POST', headers: getHeaders() });
+    const res = await fetch(getApiUrl(`/api/shipping-bills/${id}/finalize`), { method: 'POST', headers: getHeaders() });
     if (res.ok) {
       alert('Finalized successfully!');
       loadTransactions();

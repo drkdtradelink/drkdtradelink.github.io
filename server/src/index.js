@@ -27,6 +27,12 @@ app.use(cors({
 app.use(express.json());
 
 // API Routes
+const monthlyReturnRoutes = require('./routes/monthly-returns');
+
+const healthRoutes = require('./routes/health');
+
+app.use('/health', healthRoutes);
+app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/users', userRoutes);
@@ -36,17 +42,13 @@ app.use('/api/duty-rules', dutyRuleRoutes);
 app.use('/api/gr-docs', grDocRoutes);
 app.use('/api/gr-purchases', grPurchaseRoutes);
 app.use('/api/shipping-bills', shippingBillRoutes);
+app.use('/api/monthly-returns', monthlyReturnRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 
 // Serve static files for the portal frontend
 // Root is drkdtradelink.github.io, so portal lives in ../portal relative to this file's folder (src)
 const portalPath = path.join(__dirname, '../../portal');
 app.use('/portal', express.static(portalPath));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
-});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

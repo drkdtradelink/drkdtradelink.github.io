@@ -29,39 +29,43 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    if (user.status !== 'active') {
-      return res.status(401).json({ error: 'Your account is suspended or inactive. Please contact support.' });
-    }
-
     // Verify password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    // Regular users: verify company is active
-    if (user.role !== 'admin' && user.companyId) {
-      const userCompany = await prisma.company.findUnique({
+    // Regular non-admin users: verify company assignment, existence, and status
+    if (user.role !== 'admin') {
+      if (!user.companyId) {
+        return res.status(403).json({ error: 'Your user account is not associated with any active company.' });
+      }
+
+      const userCompany = user.company || await prisma.company.findUnique({
         where: { id: user.companyId }
       });
-      if (!userCompany || userCompany.status !== 'active') {
-        return res.status(403).json({ error: 'Your company is suspended or inactive. Please contact support.' });
+
+      if (!userCompany) {
+        return res.status(403).json({ error: 'Your company account has been deleted. Access is revoked.' });
       }
-    }
 
-    // If logging in through a specific company subdomain, check access
-    if (subdomain && subdomain !== 'admin') {
-      const company = await prisma.company.findUnique({
-        where: { subdomain: subdomain.toLowerCase() }
-      });
+      if (userCompany.status === 'disabled' || userCompany.status === 'inactive' || userCompany.status === 'suspended') {
+        return res.status(403).json({ error: 'Your company is disabled. Access is revoked, which is why you cannot log in. Please contact the administrator.' });
+      }
 
-      if (user.role !== 'admin') {
-        if (!company || company.status !== 'active') {
-          return res.status(403).json({ error: 'Company not found or inactive.' });
-        }
-        if (user.companyId !== company.id) {
+      if (user.status !== 'active') {
+        return res.status(401).json({ error: 'Your user account is disabled or inactive. Please contact system administration.' });
+      }
+
+      // If logging in through a specific company subdomain, verify match
+      if (subdomain && subdomain !== 'admin') {
+        if (userCompany.subdomain !== subdomain.toLowerCase()) {
           return res.status(403).json({ error: 'You do not have access to this company portal.' });
         }
+      }
+    } else {
+      if (user.status !== 'active') {
+        return res.status(401).json({ error: 'Your user account is disabled or inactive. Please contact system administration.' });
       }
     }
 

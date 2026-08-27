@@ -94,7 +94,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { sbNumber, date, consigneeId, portOfLoading, portOfDischarge,
-            vesselName, rotationNo, invoiceNumber, exchangeRate, items } = req.body;
+            vesselName, rotationNo, invoiceNumber, exchangeRate, items,
+            netWeight, grossWeight, ar4Number, qCertNumber, customHouseAgent,
+            containerNos, marksAndNos, typeOfShipment, natureOfContract } = req.body;
     let targetCompanyId = req.company?.id || req.body.companyId || req.user?.companyId;
 
     if (!targetCompanyId) {
@@ -129,12 +131,21 @@ router.post('/', async (req, res) => {
         userId: req.user.id,
         consigneeId,
         date: new Date(date || Date.now()),
-        portOfLoading: portOfLoading || '',
-        portOfDischarge: portOfDischarge || '',
+        portOfLoading: portOfLoading || 'AT KANDLA PORT',
+        portOfDischarge: portOfDischarge || 'BOND STORES NOT TO BE LANDED',
         vesselName: vesselName || '',
-        rotationNo: rotationNo || '',
+        rotationNo: rotationNo || 'N.A.',
         invoiceNumber: invoiceNumber || '',
-        exchangeRate: parseFloat(exchangeRate) || 93.45,
+        ar4Number: ar4Number || 'N.A.',
+        qCertNumber: qCertNumber || 'N.A.',
+        customHouseAgent: customHouseAgent || 'SELF / LIC No. CHA/KDL',
+        containerNos: containerNos || '',
+        marksAndNos: marksAndNos || '',
+        typeOfShipment: typeOfShipment || 'BONDED STORES',
+        natureOfContract: natureOfContract || 'FOB',
+        netWeight: parseFloat(netWeight) || 0,
+        grossWeight: parseFloat(grossWeight) || 0,
+        exchangeRate: parseFloat(exchangeRate) || 97.20,
         status: 'draft',
         items: { create: itemData }
       },
@@ -187,7 +198,7 @@ router.post('/:id/finalize', async (req, res) => {
 
 const {
   renderPinkShippingBill, renderSBNotesheet, renderSBDutyCalculation,
-  renderExportInvoice, renderDeliveryChallan, renderPackingList, renderAnnexure
+  renderExportInvoice, renderDeliveryChallan, renderPackingList
 } = require('../services/templates/shippingBillTemplates');
 
 router.get('/:id/preview/:doc', async (req, res) => {
@@ -199,7 +210,11 @@ router.get('/:id/preview/:doc', async (req, res) => {
       where: whereClause,
       include: {
         consignee: true,
-        company: true,
+        company: {
+          include: {
+            bankAccounts: true
+          }
+        },
         items: {
           include: {
             stockItem: true
@@ -222,10 +237,10 @@ router.get('/:id/preview/:doc', async (req, res) => {
     else if (doc === 'invoice') html = renderExportInvoice(tx, tx.company, tx.consignee, tx.items);
     else if (doc === 'delivery-challan') html = renderDeliveryChallan(tx, tx.company, tx.consignee, tx.items);
     else if (doc === 'packing-list') html = renderPackingList(tx, tx.company, tx.consignee, tx.items);
-    else if (doc === 'annexure') html = renderAnnexure(tx, tx.company, tx.consignee, tx.items);
     else return res.status(400).json({ error: 'Unknown document type: ' + doc });
 
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.send(html);
   } catch (error) {
     console.error('SB Preview error:', error);

@@ -919,9 +919,10 @@ router.get('/:id/preview/:doc', async (req, res) => {
 
     // Fetch company info
     let company = req.company;
-    if (!company) {
+    if (!company || !company.bankAccounts) {
       company = await prisma.company.findUnique({
-        where: { id: transaction.companyId }
+        where: { id: transaction.companyId },
+        include: { bankAccounts: true }
       });
     }
 
@@ -939,6 +940,8 @@ router.get('/:id/preview/:doc', async (req, res) => {
     const totals = snap.totals || computeTotals(items, transaction.presentDutyBalance);
 
     const html = renderDocument(docType, transaction, company, party, items, totals);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.send(html);
   } catch (error) {
     console.error('Preview doc error:', error);

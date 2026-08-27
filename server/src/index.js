@@ -15,6 +15,7 @@ const shippingBillRoutes = require('./routes/shipping-bills');
 const auditLogRoutes = require('./routes/audit-logs');
 const monthlyReturnRoutes = require('./routes/monthly-returns');
 const healthRoutes = require('./routes/health');
+const bankRoutes = require('./routes/bank');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -97,6 +98,7 @@ app.use('/api/gr-purchases', grPurchaseRoutes);
 app.use('/api/shipping-bills', shippingBillRoutes);
 app.use('/api/monthly-returns', monthlyReturnRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/bank', bankRoutes);
 
 // Serve static files for the portal frontend when running locally
 const portalPath = path.join(__dirname, '../../portal');

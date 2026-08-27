@@ -185,7 +185,10 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
       customStation,
       status,
       commodityTypes,
-      letterheadBase64
+      letterheadBase64,
+      bgNumber,
+      bgBankName,
+      bgAmount
     } = req.body;
 
     const existingCompany = await prisma.company.findUnique({
@@ -224,6 +227,15 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
         letterheadBase64: letterheadBase64 !== undefined ? letterheadBase64 : existingCompany.letterheadBase64
       }
     });
+
+    // If status changed, update user statuses accordingly
+    if (status && status !== existingCompany.status) {
+      const userStatus = (status === 'disabled' || status === 'inactive') ? 'inactive' : 'active';
+      await prisma.user.updateMany({
+        where: { companyId: req.params.id },
+        data: { status: userStatus }
+      });
+    }
 
     // Audit log tracking
     const changes = [];
@@ -272,6 +284,19 @@ router.put('/:id', requireAdminPassword, async (req, res) => {
 router.delete('/:id', requireAdminPassword, async (req, res) => {
   try {
     const companyId = req.params.id;
+
+    // Step 1: Immediately disable company and revoke user accesses
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { status: 'disabled' }
+    }).catch(() => {});
+
+    await prisma.user.updateMany({
+      where: { companyId },
+      data: { status: 'inactive' }
+    }).catch(() => {});
+
+    // Step 2: Final permanent delete of all database records
     await prisma.$transaction([
       prisma.gRTransactionItem.deleteMany({ where: { transaction: { companyId } } }),
       prisma.gRTransaction.deleteMany({ where: { companyId } }),
@@ -281,13 +306,16 @@ router.delete('/:id', requireAdminPassword, async (req, res) => {
       prisma.shippingBillTransaction.deleteMany({ where: { companyId } }),
       prisma.monthlyReturn.deleteMany({ where: { companyId } }),
       prisma.auditLog.deleteMany({ where: { companyId } }),
+      prisma.bankAccount.deleteMany({ where: { companyId } }),
+      prisma.bankGuarantee.deleteMany({ where: { companyId } }),
       prisma.user.deleteMany({ where: { companyId } }),
       prisma.dutyRule.deleteMany({ where: { companyId } }),
       prisma.stockItem.deleteMany({ where: { companyId } }),
       prisma.party.deleteMany({ where: { companyId } }),
       prisma.company.delete({ where: { id: companyId } })
     ]);
-    res.json({ message: 'Company and all associated records deleted successfully.' });
+
+    res.json({ message: 'Company and all associated users and records deleted successfully.' });
   } catch (error) {
     console.error('Delete company error:', error);
     res.status(500).json({ error: 'Failed to delete company: ' + (error.message || '') });

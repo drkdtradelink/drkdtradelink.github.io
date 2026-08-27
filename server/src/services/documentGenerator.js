@@ -1,9 +1,8 @@
-const numberToWords = (amount) => {
-  const num = Math.floor(amount);
+const numberToWordsInteger = (num) => {
   if (num === 0) return 'Zero';
   const a = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
   const b = ['', '', 'Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-  const numStr = num.toString();
+  const numStr = Math.floor(num).toString();
   if (numStr.length > 9) return 'Overflow';
   const n = ('000000000' + numStr).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
   if (!n) return ''; 
@@ -14,6 +13,33 @@ const numberToWords = (amount) => {
   str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + ' Hundred ' : '';
   str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
   return str.trim();
+};
+
+const numberToWords = (amount, currency = 'USD') => {
+  if (isNaN(amount) || amount === null || amount === undefined) return '';
+  const fixed = Number(amount).toFixed(2);
+  const parts = fixed.split('.');
+  const intVal = parseInt(parts[0], 10);
+  const decVal = parseInt(parts[1], 10);
+
+  const intWords = numberToWordsInteger(intVal);
+  const isUSD = ['USD', 'US DOLLAR', 'US DOLLARS'].includes(String(currency).toUpperCase());
+
+  if (isUSD) {
+    let result = `${intWords} US Dollars`;
+    if (decVal > 0) {
+      const decWords = numberToWordsInteger(decVal);
+      result += ` and ${decWords} Cents`;
+    }
+    return result + ' Only';
+  } else {
+    let result = `${intWords} Rupees`;
+    if (decVal > 0) {
+      const decWords = numberToWordsInteger(decVal);
+      result += ` and ${decWords} Paise`;
+    }
+    return result + ' Only';
+  }
 };
 
 function formatDate(dateVal) {
@@ -30,7 +56,8 @@ function renderGRFront(transaction, company, party, items, totals) {
       ${index === 0 ? `
         <td rowspan="${items.length}" class="align-top">
           <b>${company.warehouseCode || '_____________'}</b><br>
-          ${company.legalName}
+          <b>${company.legalName}</b>
+          ${company.address}, ${company.city}, ${company.state}
         </td>` : ''}
       <td class="text-center">${index + 1}</td>
       <td>${item.item}</td>
@@ -41,7 +68,8 @@ function renderGRFront(transaction, company, party, items, totals) {
       <td class="text-right">${Number(item.dutyAmountInr).toFixed(2)}</td>
       ${index === 0 ? `
         <td rowspan="${items.length}" class="align-top">
-          <b>${party.name}</b><br>
+          <b>${party.warehouseCode}</b><br>
+          <b>${party.name}</b>
           ${party.address}, ${party.city}, ${party.state}
         </td>` : ''}
       ${index === 0 ? `<td rowspan="${items.length}" class="align-top">${company.customStation || 'BOND C.H.KANDLA.'}</td>` : ''}
@@ -50,24 +78,18 @@ function renderGRFront(transaction, company, party, items, totals) {
 
   return `
     <div class="landscape-page page-break" style="font-size: 11px; font-family: 'Inter', sans-serif;">
-      <div class="flex justify-between font-bold mb-2">
-        <span>G.R FORM NO: ${transaction.grNumber}</span>
-        <span>DATED: ${formatDate(transaction.date)}</span>
-      </div>
-      <div class="flex justify-between font-bold mb-4">
-        <div class="w-1/2">
-          WAREHOUSE CODE: ${company.warehouseCode || '___________'}<br>
-          ${company.legalName}
-        </div>
-        <div class="w-1/2 text-right">
-          WAREHOUSE CODE: ${party.warehouseCode || '___________'}<br>
-          ${party.name}
-        </div>
-      </div>
       <h3 class="text-center font-bold mb-1">PART - 1</h3>
       <h3 class="text-center font-bold mb-4">FORM FOR TRANSFER OF GOODS FROM A WAREHOUSE</h3>
       <table class="w-full mb-8" style="border-collapse: collapse; width: 100%;">
         <thead>
+          <tr>
+            <th colspan="12" style="border: none; padding: 4px; text-align: left;">
+              <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px;">
+                <span>G.R FORM NO: _______________________</span>
+                <span>DATED: _______________________</span>
+              </div>
+            </th>
+          </tr>
           <tr style="background-color: #f3f4f6;">
             <th colspan="1" style="border: 1px solid #000; padding: 4px; font-weight: bold; text-align: center;">IMPORT DETAILS</th>
             <th colspan="2" style="border: 1px solid #000; padding: 4px; font-weight: bold; text-align: center;">DETAILS OF WAREHOUSING</th>
@@ -110,11 +132,11 @@ function renderGRFront(transaction, company, party, items, totals) {
       <div class="flex justify-between mt-auto px-8 w-full" style="display: flex; justify-content: space-between; margin-top: auto; padding: 0 32px;">
         <div class="text-center" style="text-align: center;">
           <p style="margin-bottom: 64px;">_______________________</p>
-          <p class="font-bold">SUPERINTENDENT (BOND)<br>(SIGNATURE WITH SEAL)</p>
+          <p class="font-bold">FOR ${company.legalName.toUpperCase()}<br>AUTHORISED SIGNATORY</p>
         </div>
         <div class="text-center" style="text-align: center;">
           <p style="margin-bottom: 64px;">_______________________</p>
-          <p class="font-bold">FOR ${company.legalName.toUpperCase()}<br>AUTHORISED SIGNATORY</p>
+          <p class="font-bold">SUPERINTENDENT (BOND)<br>(SIGNATURE WITH SEAL)</p>
         </div>
       </div>
     </div>
@@ -124,9 +146,9 @@ function renderGRFront(transaction, company, party, items, totals) {
 function renderGRBack(transaction, company, party) {
   return `
     <div class="landscape-page page-break" style="font-size: 11px; font-family: 'Inter', sans-serif;">
-      <div class="flex justify-between font-bold mb-4">
-        <span>GR.FORM NO. ${transaction.grNumber}</span>
-        <span>DATED: ${formatDate(transaction.date)}</span>
+      <div class="flex justify-between font-bold mb-4" style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 16px;">
+        <span>GR.FORM NO. _______________________</span>
+        <span>DATED: _______________________</span>
       </div>
       <h3 class="text-center font-bold mb-4">PART - 2</h3>
       <table class="w-full mb-8" style="border-collapse: collapse; width: 100%;">
@@ -282,7 +304,7 @@ function renderSubmissionLetter(transaction, company, party, items) {
       </table>
       
       <div class="mb-16" style="margin-bottom: 64px;">
-        <p>In this regard we are submitting herewith GR No ${transaction.grNumber} Dt: ${formatDate(transaction.date)} along with below documents.</p>
+        <p>In this regard we are submitting herewith GR No      Dt:        along with below documents.</p>
         <p class="mt-2 ml-4" style="margin-top: 8px; margin-left: 16px;">1. Buyer Order Form.</p>
         <p class="mt-2" style="margin-top: 8px;">Kindly grant our request to transfer the goods as per Buyer Order Form on bond-to-bond basis.</p>
         <p class="mt-4" style="margin-top: 16px;">Yours faithfully,</p>
@@ -437,8 +459,8 @@ function renderInvoice(transaction, company, party, items, totals) {
           </tr>
           <tr>
             <td colspan="8" style="border: 1px solid #000; padding: 4px;">
-              <strong>Total Amount (USD) in Words:</strong> <span class="uppercase" style="text-transform: uppercase;">${numberToWords(totals.usd)} US DOLLARS ONLY</span><br>
-              <strong>Total Amount (INR) in Words:</strong> <span class="uppercase" style="text-transform: uppercase;">${numberToWords(totals.assessable)} RUPEES ONLY</span>
+              <strong>Total Amount (USD) in Words:</strong> <span class="uppercase" style="text-transform: uppercase;">${numberToWords(totals.usd, 'USD')}</span><br>
+              <strong>Total Amount (INR) in Words:</strong> <span class="uppercase" style="text-transform: uppercase;">${numberToWords(totals.assessable, 'INR')}</span>
             </td>
           </tr>
         </tfoot>
@@ -448,20 +470,25 @@ function renderInvoice(transaction, company, party, items, totals) {
         <strong>Narration:</strong> Being Bond Store items transferred Bond to Bond Vide GR No: ${transaction.grNumber} DtD: ${formatDate(transaction.date)}
       </div>
       
-      <div class="flex justify-between mt-auto" style="display: flex; justify-content: space-between; margin-top: auto;">
-        <div class="w-1/2 p-2" style="width: 50%; padding: 8px; border: 1px solid #000; font-size: 11px;">
-          <strong>Company's Bank Details</strong><br>
-          Bank Name : ${company.bankName || '________________'}<br>
-          A/c Holder Name : ${company.legalName}<br>
-          A/c No : ${company.bankAccount || '________________'}<br>
-          Branch : ${company.bankBranch || '________________'}<br>
-          IFSC: ${company.bankIfsc || '________________'}
-        </div>
-        <div class="w-1/2 text-right" style="width: 50%; text-align: right;">
-          <p class="font-bold" style="font-weight: bold;">FOR ${company.legalName.toUpperCase()}</p>
-          <p style="margin-top: 64px;">AUTHORISED SIGNATORY</p>
-        </div>
-      </div>
+      ${(() => {
+        const pBank = company.primaryBankAccount || (company.bankAccounts && company.bankAccounts.find(b => b.isPrimary)) || (company.bankAccounts && company.bankAccounts[0]) || null;
+        return `
+          <div class="flex justify-between mt-auto" style="display: flex; justify-content: space-between; margin-top: auto;">
+            <div class="w-1/2 p-2" style="width: 50%; padding: 8px; border: 1px solid #000; font-size: 11px;">
+              <strong>Company's Bank Details</strong><br>
+              Bank Name : ${pBank ? pBank.bankName : (company.bankName || '________________')}<br>
+              A/c Holder Name : ${pBank ? pBank.accountHolderName : company.legalName}<br>
+              A/c No : ${pBank ? pBank.accountNumber : (company.bankAccount || '________________')}<br>
+              Branch : ${pBank ? pBank.branchName : (company.bankBranch || '________________')}<br>
+              IFSC: ${pBank ? pBank.ifscCode : (company.bankIfsc || '________________')}
+            </div>
+            <div class="w-1/2 text-right" style="width: 50%; text-align: right;">
+              <p class="font-bold" style="font-weight: bold;">FOR ${company.legalName.toUpperCase()}</p>
+              <p style="margin-top: 64px;">AUTHORISED SIGNATORY</p>
+            </div>
+          </div>
+        `;
+      })()}
       <div class="mt-4 text-xs text-justify" style="margin-top: 16px; font-size: 10px; text-align: justify;">
         <strong>Declaration:</strong><br>
         In case of any discrepancy on above invoice amount please notify within 5 working days. If not, this invoice will be presumed to be in order. Payment Terms: Cash/Cheque on Delivery/Submission of Invoice.

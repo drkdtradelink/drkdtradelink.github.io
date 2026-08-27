@@ -89,6 +89,8 @@ router.post('/', async (req, res) => {
       totalQuantity,
       packing,
       unit,
+      netWeight,
+      grossWeight,
       dutyPercentage,
       presentDutyBalance,
       companyId
@@ -145,6 +147,8 @@ router.post('/', async (req, res) => {
         remainingQuantity: parsedQty, // starts as equal
         packing: packing || '',
         unit: unit || 'Cases',
+        netWeight: parseFloat(netWeight) || 0,
+        grossWeight: parseFloat(grossWeight) || 0,
         dutyPercentage: parsedDuty,
         presentDutyBalance: parsedPresentDuty
       }

@@ -19,8 +19,9 @@
 
       <div class="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <label class="form-label">SB Number</label>
-          <input type="text" v-model="form.sbNumber" class="form-control" required />
+          <label class="form-label">SB Number (DB Job Tracker ID)</label>
+          <input type="text" v-model="form.sbNumber" class="form-control" placeholder="Auto-generated (e.g. PSB-DRKD-2026-001)" required />
+          <small style="color: #64748b; font-size: 11px;">Handwritten/blank on physical pink form print, tracked in database.</small>
         </div>
         <div>
           <label class="form-label">Date</label>
@@ -34,28 +35,48 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Vessel Name</label>
-          <input type="text" v-model="form.vesselName" class="form-control" placeholder="MT SOYO" />
+          <label class="form-label">Vessel / Flight Name</label>
+          <input type="text" v-model="form.vesselName" class="form-control" placeholder="MV DRAKE WELL AT KANDLA PORT" />
         </div>
         <div>
           <label class="form-label">Rotation No.</label>
-          <input type="text" v-model="form.rotationNo" class="form-control" placeholder="1XY1S021" />
+          <input type="text" v-model="form.rotationNo" class="form-control" placeholder="N.A." />
         </div>
         <div>
           <label class="form-label">Port of Loading</label>
-          <input type="text" v-model="form.portOfLoading" class="form-control" placeholder="Kandla / Dahej Port" />
+          <input type="text" v-model="form.portOfLoading" class="form-control" placeholder="AT KANDLA PORT" />
         </div>
         <div>
           <label class="form-label">Port of Discharge</label>
-          <input type="text" v-model="form.portOfDischarge" class="form-control" placeholder="AT Dahej Port" />
+          <input type="text" v-model="form.portOfDischarge" class="form-control" placeholder="BOND STORES NOT TO BE LANDED" />
         </div>
         <div>
           <label class="form-label">Invoice Number</label>
           <input type="text" v-model="form.invoiceNumber" class="form-control" :placeholder="'INV-' + form.sbNumber" />
         </div>
         <div>
+          <label class="form-label">AR4/AR4A No. & Date</label>
+          <input type="text" v-model="form.ar4Number" class="form-control" placeholder="N.A." />
+        </div>
+        <div>
+          <label class="form-label">Q/Cert. No. & Date</label>
+          <input type="text" v-model="form.qCertNumber" class="form-control" placeholder="N.A." />
+        </div>
+        <div>
+          <label class="form-label">Custom House Agent</label>
+          <input type="text" v-model="form.customHouseAgent" class="form-control" placeholder="SELF / LIC No. CHA/KDL" />
+        </div>
+        <div>
           <label class="form-label">Exchange Rate (1 USD = INR)</label>
           <input type="number" step="0.01" v-model="form.exchangeRate" class="form-control" required />
+        </div>
+        <div>
+          <label class="form-label">Net Weight (KG)</label>
+          <input type="number" step="0.01" min="0" v-model="form.netWeight" class="form-control" placeholder="e.g. 150.0" />
+        </div>
+        <div>
+          <label class="form-label">Gross Weight (KG)</label>
+          <input type="number" step="0.01" min="0" v-model="form.grossWeight" class="form-control" placeholder="e.g. 175.0" />
         </div>
       </div>
 
@@ -201,11 +222,16 @@ const form = ref({
   date: new Date().toISOString().split('T')[0],
   consigneeId: '',
   vesselName: '',
-  rotationNo: '',
-  portOfLoading: '',
-  portOfDischarge: '',
+  rotationNo: 'N.A.',
+  portOfLoading: 'AT KANDLA PORT',
+  portOfDischarge: 'BOND STORES NOT TO BE LANDED',
   invoiceNumber: '',
-  exchangeRate: 93.45,
+  ar4Number: 'N.A.',
+  qCertNumber: 'N.A.',
+  customHouseAgent: 'SELF / LIC No. CHA/KDL',
+  netWeight: 0,
+  grossWeight: 0,
+  exchangeRate: 97.20,
   items: []
 });
 

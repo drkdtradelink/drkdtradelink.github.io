@@ -103,29 +103,44 @@
           <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
           Dashboard
         </a>
-        <a @click="navigate('#/gr-docs')" class="nav-item" :class="{ active: currentRoute === '#/gr-docs' }">
-          <svg xmlns="http://www.w3.org/.svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          GR Docs (Ex-Bond)
-        </a>
-        <a @click="navigate('#/gr-purchases')" class="nav-item" :class="{ active: currentRoute === '#/gr-purchases' }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3"/></svg>
-          GR Purchases (Inbound)
-        </a>
-        <a @click="navigate('#/shipping-bills')" class="nav-item" :class="{ active: currentRoute === '#/shipping-bills' }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M12 12v6M9 15l3-3 3 3"/></svg>
-          Pink Shipping Bills
-        </a>
-        <a @click="navigate('#/monthly-returns')" class="nav-item" :class="{ active: currentRoute === '#/monthly-returns' }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/></svg>
-          Monthly Returns
-        </a>
+
+        <!-- Collapsible Customs Documents Category -->
+        <div style="margin: 6px 0;">
+          <div @click="isCustomsDocsOpen = !isCustomsDocsOpen" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; user-select: none; border-radius: 6px; background: rgba(241, 245, 249, 0.6);">
+            <span style="display: flex; align-items: center; gap: 6px;">📑 Customs Documents</span>
+            <span style="font-size: 9px; transition: transform 0.2s;" :style="{ transform: isCustomsDocsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }">▶</span>
+          </div>
+          <div v-show="isCustomsDocsOpen" style="display: flex; flex-direction: column; gap: 2px; padding-left: 6px; margin-top: 4px;">
+            <a @click="navigate('#/gr-docs')" class="nav-item" :class="{ active: currentRoute === '#/gr-docs' }">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              GR Sale Docs
+            </a>
+            <a @click="navigate('#/gr-purchases')" class="nav-item" :class="{ active: currentRoute === '#/gr-purchases' }">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3"/></svg>
+              GR Purchases
+            </a>
+            <a @click="navigate('#/shipping-bills')" class="nav-item" :class="{ active: currentRoute === '#/shipping-bills' }">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M12 12v6M9 15l3-3 3 3"/></svg>
+              Shipping Bills
+            </a>
+            <a @click="navigate('#/monthly-returns')" class="nav-item" :class="{ active: currentRoute === '#/monthly-returns' }">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/></svg>
+              Monthly Returns
+            </a>
+          </div>
+        </div>
+
         <a @click="navigate('#/stock')" class="nav-item" :class="{ active: currentRoute === '#/stock' }">
           <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-18v10l-8 4m0-4L4 7m8 4v10M4 7v10l8 4"></path></svg>
-          Stock Items
+          Stock
         </a>
         <a @click="navigate('#/parties')" class="nav-item" :class="{ active: currentRoute === '#/parties' }">
           <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
           Parties / Buyers
+        </a>
+        <a @click="navigate('#/bank')" class="nav-item" :class="{ active: currentRoute === '#/bank' }">
+          <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m4 0h1M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          Bank & Accounts
         </a>
         <a @click="navigate('#/profile')" class="nav-item" :class="{ active: currentRoute === '#/profile' }">
           <svg style="width: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -264,28 +279,27 @@
               </div>
             </div>
 
-            <!-- Future Modules Placeholder -->
+            <!-- Operational Modules & Quick Actions -->
             <div class="card">
               <div class="card-header">
-                <div class="card-title">Additional Modules</div>
+                <div class="card-title">Operational Modules & Quick Actions</div>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="padding: 12px; border: 1px dashed var(--border); border-radius: 6px; background-color: #f8fafc;">
-                  <h4 style="font-size: 13px; font-weight: 700; color: #475569;">Shipping Bills</h4>
-                  <span class="badge badge-info" style="margin-top: 4px;">Coming Soon</span>
-                </div>
-                <div style="padding: 12px; border: 1px dashed var(--border); border-radius: 6px; background-color: #f8fafc;">
-                  <h4 style="font-size: 13px; font-weight: 700; color: #475569;">Monthly Returns</h4>
-                  <span class="badge badge-info" style="margin-top: 4px;">Coming Soon</span>
-                </div>
-                <div style="padding: 12px; border: 1px dashed var(--border); border-radius: 6px; background-color: #f8fafc;">
-                  <h4 style="font-size: 13px; font-weight: 700; color: #475569;">GR Purchase Docs</h4>
-                  <span class="badge badge-info" style="margin-top: 4px;">Coming Soon</span>
-                </div>
-                <div style="padding: 12px; border: 1px dashed var(--border); border-radius: 6px; background-color: #f8fafc;">
-                  <h4 style="font-size: 13px; font-weight: 700; color: #475569;">Import Documents</h4>
-                  <span class="badge badge-info" style="margin-top: 4px;">Coming Soon</span>
-                </div>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button @click="openCreateStockModal" class="btn btn-outline-primary" style="justify-content: flex-start; gap: 10px; font-weight: 700; text-align: left; padding: 10px 14px;">
+                  <span style="font-size: 16px;">📦</span> Add Stock Item
+                </button>
+                <button @click="navigate('#/gr-docs')" class="btn btn-outline-primary" style="justify-content: flex-start; gap: 10px; font-weight: 700; text-align: left; padding: 10px 14px;">
+                  <span style="font-size: 16px;">📄</span> GR Sale Docs
+                </button>
+                <button @click="navigate('#/gr-purchases')" class="btn btn-outline-primary" style="justify-content: flex-start; gap: 10px; font-weight: 700; text-align: left; padding: 10px 14px;">
+                  <span style="font-size: 16px;">📥</span> GR Purchase
+                </button>
+                <button @click="navigate('#/shipping-bills')" class="btn btn-outline-primary" style="justify-content: flex-start; gap: 10px; font-weight: 700; text-align: left; padding: 10px 14px;">
+                  <span style="font-size: 16px;">🚢</span> Shipping Bills
+                </button>
+                <button @click="navigate('#/monthly-returns')" class="btn btn-outline-primary" style="justify-content: flex-start; gap: 10px; font-weight: 700; text-align: left; padding: 10px 14px;">
+                  <span style="font-size: 16px;">📊</span> Monthly Returns
+                </button>
               </div>
             </div>
           </div>
@@ -868,15 +882,15 @@
                     <td>{{ comp.warehouseCode || 'N/A' }}</td>
                     <td>{{ comp.city }} / {{ comp.state }}</td>
                     <td>
-                      <span class="badge" :class="comp.status === 'active' ? 'badge-success' : 'badge-danger'">{{ comp.status }}</span>
+                      <span class="badge" :class="comp.status === 'active' ? 'badge-success' : 'badge-danger'">{{ comp.status === 'active' ? 'Active' : 'Disabled' }}</span>
                     </td>
                     <td>
                       <div style="display: flex; gap: 4px;">
                         <button type="button" @click="editCompany(comp)" class="btn btn-secondary btn-sm">Edit</button>
-                        <button type="button" @click="deleteCompany(comp)" class="btn btn-danger btn-sm">Delete</button>
-                        <button type="button" @click="toggleCompanyStatus(comp)" class="btn btn-secondary btn-sm">
-                          {{ comp.status === 'active' ? 'Suspend' : 'Activate' }}
+                        <button type="button" @click="toggleCompanyStatus(comp)" :class="comp.status === 'active' ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'">
+                          {{ comp.status === 'active' ? 'Disable' : 'Enable' }}
                         </button>
+                        <button type="button" @click="deleteCompany(comp)" class="btn btn-danger btn-sm">Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -975,6 +989,82 @@
                 </div>
                 <button type="submit" class="btn btn-primary w-full">{{ editingCompanyId ? 'Save Changes' : 'Create Company Portal' }}</button>
               </form>
+            </div>
+          </div>
+
+          <!-- 3-Step Confirmation Delete Company Modal -->
+          <div v-if="showDeleteCompanyModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 1100;">
+            <div class="card" style="width: 100%; max-width: 580px; margin-bottom: 0; border: 2px solid #ef4444; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+              <div class="card-header" style="background-color: #fef2f2; border-bottom: 1px solid #fee2e2;">
+                <div class="card-title" style="color: #991b1b; display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                  ⚠️ Delete Corporate Tenant Company
+                </div>
+                <button type="button" @click="closeDeleteCompanyModal" class="btn btn-secondary btn-sm">Cancel</button>
+              </div>
+
+              <div style="padding: 20px;">
+                <div style="background-color: #fff1f2; border: 1px solid #fecdd3; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;">
+                  <strong style="color: #9f1239; font-size: 14px;">Warning: Deleting "{{ companyToDelete?.displayName }}" ({{ companyToDelete?.subdomain }})</strong>
+                  <p style="font-size: 12px; color: #be123c; margin: 4px 0 0 0;">
+                    Deleting a company is an irreversible multi-phase process. You must complete all 3 verification checks below before permanently erasing database records.
+                  </p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                  <!-- Check 1 -->
+                  <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer;">
+                    <input type="checkbox" v-model="deleteCheck1" style="margin-top: 2px; width: 18px; height: 18px; accent-color: #dc2626;">
+                    <div>
+                      <div style="font-weight: 600; font-size: 13px; color: #111827;">Check 1: Revoke Access & Disable Tenant</div>
+                      <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">I confirm that proceeding will immediately revoke access tokens and set company status to Disabled for all users of "{{ companyToDelete?.displayName }}".</div>
+                    </div>
+                  </label>
+
+                  <!-- Check 2 -->
+                  <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer;">
+                    <input type="checkbox" v-model="deleteCheck2" style="margin-top: 2px; width: 18px; height: 18px; accent-color: #dc2626;">
+                    <div>
+                      <div style="font-weight: 600; font-size: 13px; color: #111827;">Check 2: Confirm Record Purge</div>
+                      <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">I confirm that all associated Stock Items, Parties, Duty Rules, GR Transactions, Shipping Bills, Monthly Returns, and Bank Accounts will be queued for permanent deletion.</div>
+                    </div>
+                  </label>
+
+                  <!-- Check 3 -->
+                  <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer;">
+                    <input type="checkbox" v-model="deleteCheck3" style="margin-top: 2px; width: 18px; height: 18px; accent-color: #dc2626;">
+                    <div>
+                      <div style="font-weight: 600; font-size: 13px; color: #111827;">Check 3: Final Data Eradication (Irreversible)</div>
+                      <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">I acknowledge that all company data and user accounts will be permanently erased from the system database. Data CANNOT be recovered.</div>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Admin Password Input -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <label class="form-label" style="color: #991b1b; font-weight: 600;">System Administrator Password *</label>
+                  <input type="password" v-model="deleteAdminPassword" placeholder="Enter System Admin Password to authorize" class="form-control" style="border-color: #f87171;" required>
+                </div>
+
+                <div v-if="deleteErrorMsg" style="color: #dc2626; font-size: 13px; margin-bottom: 14px; font-weight: 600; background-color: #fef2f2; padding: 8px 12px; border-radius: 4px; border: 1px solid #fecdd3;">
+                  {{ deleteErrorMsg }}
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <button type="button" @click="disableCompanyOnly(companyToDelete)" class="btn btn-secondary btn-sm" title="Disable access without deleting data">
+                    Disable Company Only
+                  </button>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" @click="closeDeleteCompanyModal" class="btn btn-secondary btn-sm">Cancel</button>
+                    <button type="button" 
+                            @click="confirmDeleteCompany" 
+                            :disabled="!deleteCheck1 || !deleteCheck2 || !deleteCheck3 || !deleteAdminPassword || isDeletingCompany" 
+                            class="btn btn-danger btn-sm" 
+                            style="font-weight: 600; background-color: #dc2626;">
+                      {{ isDeletingCompany ? 'Deleting Data...' : 'Permanently Delete Company & All Data' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1261,6 +1351,11 @@
           </div>
         </div>
 
+        <!-- BANK MANAGEMENT ROUTE -->
+        <div v-if="currentRoute === '#/bank'">
+          <BankManagement />
+        </div>
+
         <!-- SYSTEM HEALTH MONITOR ROUTE -->
         <div v-if="currentRoute === '#/health'">
           <HealthDashboard :userRole="currentUser?.role" />
@@ -1282,12 +1377,15 @@ import GRPurchases from './components/GRPurchases.vue';
 import ShippingBills from './components/ShippingBills.vue';
 import MonthlyReturns from './components/MonthlyReturns.vue';
 import HealthDashboard from './components/HealthDashboard.vue';
+import BankManagement from './components/BankManagement.vue';
 
 const formatDate = (val) => {
   if (!val) return '';
   const d = new Date(val);
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
+
+const isCustomsDocsOpen = ref(true);
 
 
       // Session states
@@ -1325,6 +1423,14 @@ const formatDate = (val) => {
       const showStockModal = ref(false);
       const showPartyModal = ref(false);
       const showCompanyModal = ref(false);
+      const showDeleteCompanyModal = ref(false);
+      const companyToDelete = ref(null);
+      const deleteCheck1 = ref(false);
+      const deleteCheck2 = ref(false);
+      const deleteCheck3 = ref(false);
+      const deleteAdminPassword = ref('');
+      const deleteErrorMsg = ref('');
+      const isDeletingCompany = ref(false);
       const showUserModal = ref(false);
       const showRuleModal = ref(false);
 
@@ -1556,12 +1662,14 @@ const formatDate = (val) => {
       const getRouteTitle = () => {
         switch (currentRoute.value) {
           case '#/dashboard': return 'Dashboard Overview';
-          case '#/gr-docs': return 'GR Documents (Ex-Bond)';
+          case '#/gr-docs': return 'GR Sale Docs (Ex-Bond)';
           case '#/gr-purchases': return 'GR Purchases (Inbound)';
-          case '#/shipping-bills': return 'Pink Shipping Bills';
+          case '#/shipping-bills': return 'Shipping Bills';
+          case '#/monthly-returns': return 'Monthly Returns Compliance';
           case '#/gr-docs/create': return 'Create GR Document Package';
-          case '#/stock': return 'Inventory / Warehouse Stock';
+          case '#/stock': return 'Stock / Bonded Inventory';
           case '#/parties': return 'Parties / Consignees Registry';
+          case '#/bank': return 'Bank Accounts & Guarantees';
           case '#/profile': return 'My Account Profile Settings';
           case '#/health': return 'System & API Operational Health';
           case '#/admin/companies': return 'Super Admin - Companies Tenant Registry';
@@ -1796,10 +1904,15 @@ const formatDate = (val) => {
 
       // Toggles for Admin
       const toggleCompanyStatus = (company) => {
-        const nextStatus = company.status === 'active' ? 'inactive' : 'active';
+        const nextStatus = company.status === 'active' ? 'disabled' : 'active';
+        const actionLabel = nextStatus === 'disabled' ? 'DISABLE' : 'ENABLE';
+        const warning = nextStatus === 'disabled'
+          ? `Disabling "${company.displayName}" will immediately revoke access for all company user accounts without deleting any database records.`
+          : `Enabling "${company.displayName}" will restore system access for company users.`;
+
         triggerPrompt({
-          title: `Confirm Company Status: ${nextStatus.toUpperCase()}`,
-          message: `Are you sure you want to set status of company "${company.displayName}" to ${nextStatus.toUpperCase()}? System Admin password required:`,
+          title: `Confirm Company Status: ${actionLabel}`,
+          message: `${warning}\n\nPlease enter System Admin password to authorize:`,
           onConfirm: async (val, adminPassword) => {
             if (!adminPassword) return;
             const res = await fetch(getApiUrl(`/api/companies/${company.id}`), {
@@ -1812,6 +1925,7 @@ const formatDate = (val) => {
             });
             if (res.ok) {
               fetchCompanies();
+              fetchUsers();
             } else {
               const err = await res.json();
               alert(err.error || 'Failed to update company status.');
@@ -2121,25 +2235,90 @@ const formatDate = (val) => {
       };
 
       const deleteCompany = (comp) => {
-        triggerPrompt({
-          title: 'Delete Company Tenant',
-          message: `WARNING: Are you sure you want to permanently delete company "${comp.displayName}"? This will also delete all of its users, parties, stock items, and GR transactions. Please verify your system administrator password:`,
-          onConfirm: async (val, adminPassword) => {
-            const res = await fetch(getApiUrl(`/api/companies/${comp.id}`), {
-              method: 'DELETE',
-              headers: {
-                ...getHeaders(),
-                'X-Admin-Password': adminPassword
-              }
-            });
-            if (res.ok) {
-              fetchCompanies();
-            } else {
-              const err = await res.json();
-              alert(err.error || 'Failed to delete company.');
+        companyToDelete.value = comp;
+        deleteCheck1.value = false;
+        deleteCheck2.value = false;
+        deleteCheck3.value = false;
+        deleteAdminPassword.value = '';
+        deleteErrorMsg.value = '';
+        isDeletingCompany.value = false;
+        showDeleteCompanyModal.value = true;
+      };
+
+      const closeDeleteCompanyModal = () => {
+        showDeleteCompanyModal.value = false;
+        companyToDelete.value = null;
+        deleteCheck1.value = false;
+        deleteCheck2.value = false;
+        deleteCheck3.value = false;
+        deleteAdminPassword.value = '';
+        deleteErrorMsg.value = '';
+        isDeletingCompany.value = false;
+      };
+
+      const confirmDeleteCompany = async () => {
+        if (!companyToDelete.value) return;
+        if (!deleteCheck1.value || !deleteCheck2.value || !deleteCheck3.value) {
+          deleteErrorMsg.value = 'Please complete all 3 verification check steps before deleting.';
+          return;
+        }
+        if (!deleteAdminPassword.value) {
+          deleteErrorMsg.value = 'System Admin Password is required to authorize deletion.';
+          return;
+        }
+
+        isDeletingCompany.value = true;
+        deleteErrorMsg.value = '';
+
+        try {
+          const res = await fetch(getApiUrl(`/api/companies/${companyToDelete.value.id}`), {
+            method: 'DELETE',
+            headers: {
+              ...getHeaders(),
+              'X-Admin-Password': deleteAdminPassword.value
             }
+          });
+
+          if (res.ok) {
+            closeDeleteCompanyModal();
+            fetchCompanies();
+            fetchUsers();
+          } else {
+            const err = await res.json();
+            deleteErrorMsg.value = err.error || 'Failed to delete company.';
           }
-        });
+        } catch (error) {
+          deleteErrorMsg.value = 'Network error while attempting to delete company.';
+        } finally {
+          isDeletingCompany.value = false;
+        }
+      };
+
+      const disableCompanyOnly = async (comp) => {
+        if (!comp || !deleteAdminPassword.value) {
+          deleteErrorMsg.value = 'System Admin Password is required to disable the company.';
+          return;
+        }
+        try {
+          const res = await fetch(getApiUrl(`/api/companies/${comp.id}`), {
+            method: 'PUT',
+            headers: {
+              ...getHeaders(),
+              'X-Admin-Password': deleteAdminPassword.value
+            },
+            body: JSON.stringify({ status: 'disabled' })
+          });
+          if (res.ok) {
+            closeDeleteCompanyModal();
+            fetchCompanies();
+            fetchUsers();
+          } else {
+            const err = await res.json();
+            deleteErrorMsg.value = err.error || 'Failed to disable company.';
+          }
+        } catch (error) {
+          deleteErrorMsg.value = 'Network error while updating company status.';
+        }
       };
 
       const editUser = (u) => {

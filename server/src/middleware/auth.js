@@ -53,55 +53,57 @@ async function authenticate(req, res, next) {
       include: { company: true }
     });
 
-    if (!user || user.status !== 'active') {
-      return res.status(401).json({ error: 'User is inactive or does not exist.' });
+    if (!user) {
+      return res.status(401).json({ error: 'User account does not exist.' });
     }
 
     req.user = user;
 
-    // 5. Enforce Multi-tenant Subdomain Access
-    if (req.subdomain === 'admin') {
-      // Accessing admin subdomain requires super admin role
-      if (user.role !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Admin portal requires administrator privileges.' });
+    // 5. Enforce Multi-tenant Subdomain & Company Access Controls
+    if (user.role !== 'admin') {
+      // Non-admin users MUST belong to an active, non-deleted company
+      if (!user.companyId) {
+        return res.status(403).json({ error: 'Access denied. Account is not assigned to a company.' });
       }
-      req.company = null; // System admins operate at system level
-    } else if (req.subdomain) {
-      // Accessing a company subdomain (e.g. drkd, companya)
-      const company = await prisma.company.findUnique({
-        where: { subdomain: req.subdomain }
+
+      const userCompany = user.company || await prisma.company.findUnique({
+        where: { id: user.companyId }
       });
 
-      if (!company) {
-        // Fallback to user's registered company if subdomain is invalid/platform host
-        if (user.companyId) {
-          req.company = user.company || await prisma.company.findUnique({ where: { id: user.companyId } });
-        } else {
-          req.company = null;
-        }
-      } else {
-        if (user.role !== 'admin' && company.status !== 'active') {
-          return res.status(403).json({ error: 'Company is suspended or inactive.' });
-        }
-        if (user.role !== 'admin' && user.companyId !== company.id) {
+      if (!userCompany) {
+        return res.status(403).json({ error: 'Your company account has been deleted. Access is revoked.' });
+      }
+
+      if (userCompany.status === 'disabled' || userCompany.status === 'inactive' || userCompany.status === 'suspended') {
+        return res.status(403).json({ error: 'Your company account is disabled. Access has been revoked. Please contact system administrator.' });
+      }
+
+      if (user.status !== 'active') {
+        return res.status(401).json({ error: 'User account is inactive or disabled.' });
+      }
+
+      // Check subdomain match if subdomain specified and not 'admin'
+      if (req.subdomain && req.subdomain !== 'admin') {
+        if (userCompany.subdomain !== req.subdomain.toLowerCase()) {
           return res.status(403).json({ error: 'Access denied. You do not belong to this company.' });
         }
-        req.company = company;
       }
+
+      req.company = userCompany;
     } else {
-      // No subdomain specified. Default to user's company
-      if (user.companyId) {
-        const company = user.company || await prisma.company.findUnique({
-          where: { id: user.companyId }
-        });
-        
-        if (user.role !== 'admin' && (!company || company.status !== 'active')) {
-          return res.status(403).json({ error: 'Your company is suspended or inactive.' });
-        }
-        
-        req.company = company;
-      } else {
+      if (user.status !== 'active') {
+        return res.status(401).json({ error: 'User account is inactive or disabled.' });
+      }
+
+      // System Super Admin role
+      if (req.subdomain === 'admin' || !req.subdomain) {
         req.company = null;
+      } else {
+        // Admin accessing specific company subdomain
+        const company = await prisma.company.findUnique({
+          where: { subdomain: req.subdomain }
+        });
+        req.company = company || null;
       }
     }
 

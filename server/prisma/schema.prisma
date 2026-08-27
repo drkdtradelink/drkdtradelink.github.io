@@ -46,6 +46,37 @@ model Company {
   shippingBills  ShippingBillTransaction[]
   monthlyReturns MonthlyReturn[]
   auditLogs      AuditLog[]
+  bankAccounts   BankAccount[]
+  bankGuarantees BankGuarantee[]
+}
+
+model BankAccount {
+  id                String   @id @default(uuid())
+  companyId         String
+  accountHolderName String
+  bankName          String
+  accountNumber     String
+  ifscCode          String
+  branchName        String
+  isPrimary         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model BankGuarantee {
+  id         String    @id @default(uuid())
+  companyId  String
+  bgNumber   String
+  bankName   String
+  amount     Float
+  expiryDate DateTime?
+  remarks    String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -108,6 +139,8 @@ model StockItem {
   remainingQuantity  Int
   packing            String
   unit               String    @default("Cases")
+  netWeight          Float?    @default(0)
+  grossWeight        Float?    @default(0)
   dutyPercentage     Float
   presentDutyBalance Float     @default(0)
   createdAt          DateTime  @default(now())
@@ -249,12 +282,21 @@ model ShippingBillTransaction {
   userId              String
   consigneeId         String
   date                DateTime
-  portOfLoading       String?
-  portOfDischarge     String?
+  portOfLoading       String?   @default("AT KANDLA PORT")
+  portOfDischarge     String?   @default("BOND STORES NOT TO BE LANDED")
   vesselName          String?
-  rotationNo          String?
+  rotationNo          String?   @default("N.A.")
   invoiceNumber       String?
-  exchangeRate        Float?    @default(93.45)
+  ar4Number           String?   @default("N.A.")
+  qCertNumber         String?   @default("N.A.")
+  customHouseAgent    String?   @default("SELF / LIC No. CHA/KDL")
+  containerNos        String?
+  marksAndNos         String?
+  typeOfShipment      String?   @default("BONDED STORES")
+  natureOfContract    String?   @default("FOB")
+  netWeight           Float?    @default(0)
+  grossWeight         Float?    @default(0)
+  exchangeRate        Float?    @default(97.20)
   status              String    @default("draft") // draft | finalized | cancelled
   calculationSnapshot String? // JSON stringified snapshot
   createdAt           DateTime  @default(now())

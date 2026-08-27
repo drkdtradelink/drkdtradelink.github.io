@@ -35,8 +35,8 @@ const numberToWords = (amount) => {
 };
 
 const pageStyle = `
-  html, body { font-family: 'Times New Roman', serif; font-size: 11px; line-height: 1.4; margin: 0; padding: 0; background-color: #ffffff !important; color: #000000 !important; }
-  .page { padding: 10mm 12mm; box-sizing: border-box; page-break-after: always; min-height: 277mm; background-color: #ffffff !important; color: #000000 !important; }
+  html, body { font-family: 'Times New Roman', serif; font-size: 11px; line-height: 1.4; margin: 0; padding: 0; background-color: #fce7f3 !important; color: #000000 !important; }
+  .page { padding: 10mm 12mm; box-sizing: border-box; page-break-after: always; min-height: 277mm; background-color: #fbcfe8 !important; color: #000000 !important; border: 1px solid #f472b6; margin: 10px auto; max-width: 210mm; }
   .page:last-child { page-break-after: auto; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #000; padding: 3px 5px; vertical-align: top; font-size: 11px; }
@@ -44,8 +44,8 @@ const pageStyle = `
   .center { text-align: center; }
   .right { text-align: right; }
   .bold { font-weight: bold; }
-  h2 { text-align: center; font-size: 12px; font-weight: bold; margin: 4px 0; text-transform: uppercase; }
-  @media print { .page { page-break-after: always; } .page:last-child { page-break-after: auto; } }
+  h2 { text-align: center; font-size: 13px; font-weight: bold; margin: 4px 0; text-transform: uppercase; }
+  @media print { html, body, .page { background-color: #ffffff !important; border: none; margin: 0; width: 100%; } .page { page-break-after: always; } .page:last-child { page-break-after: auto; } }
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ const pageStyle = `
 // ─────────────────────────────────────────────────────────────────────────────
 function renderSBFront(tx, company, consignee, items, copyLabel) {
   const totalFOBUSD = items.reduce((s, i) => s + Number(i.fobValue || 0), 0);
-  const exchangeRate = tx.exchangeRate || 93.45;
+  const exchangeRate = tx.exchangeRate || 97.20;
   const totalFOBINR  = totalFOBUSD * exchangeRate;
   const totalQty     = items.reduce((s, i) => s + Number(i.exportQty || 0), 0);
 
@@ -62,10 +62,9 @@ function renderSBFront(tx, company, consignee, items, copyLabel) {
     return `
       <tr>
         <td class="center">${idx + 1}</td>
-        <td>${si.hsn || '22083019'}</td>
-        <td>${si.packing || si.unit || '1X12X100CL'}</td>
-        <td></td>
+        <td>${si.hsn || '22030000'}</td>
         <td>${si.commodityName || ''}</td>
+        <td>${si.packing || '24X330CL'}</td>
         <td class="center">${item.exportQty} ${si.unit || 'CASE'}</td>
         <td class="right">${Number(item.fobValue).toFixed(2)}</td>
       </tr>
@@ -78,10 +77,10 @@ function renderSBFront(tx, company, consignee, items, copyLabel) {
     return `
       <tr>
         <td>${si.beDetails || '________'}</td>
-        <td>${si.vesselName || 'BY SEA'}</td>
+        <td>${tx.vesselName || 'BY SEA'} / ${tx.rotationNo || 'N.A.'}</td>
         <td class="center">${item.exportQty} ${si.unit || 'CASE'}</td>
         <td>${si.bondNumber || '________'}<br>${si.bondDate ? 'DT:' + fmt(si.bondDate) : ''}</td>
-        <td>${company.legalName}<br>(Special Bonded Warehouse)<br>${company.warehouseCode || ''}</td>
+        <td>${company.legalName}<br>(CUSTOM SPECIAL BONDED WAREHOUSE)</td>
       </tr>
     `;
   }).join('');
@@ -89,7 +88,7 @@ function renderSBFront(tx, company, consignee, items, copyLabel) {
   return `
     <div class="page">
       <!-- HEADER -->
-      <h2>SHIPPING BILL / DOCK CHALLAN / EXPORT APPLICATION FOR EXPORT OF DUTY FREE GOODS EX-BOND</h2>
+      <h2>SHIPPING FOR EXPORT OF DUTY FREE GOODS EX -BOND</h2>
       <div style="text-align:right; font-size:12px; font-weight:bold; border:1px solid #000; display:inline-block; padding:2px 8px; float:right; margin-top:-5px;">${copyLabel}</div>
       <div style="clear:both;"></div>
       <br>
@@ -111,31 +110,33 @@ function renderSBFront(tx, company, consignee, items, copyLabel) {
                 <td style="font-size:10px;">Invoice No. &amp; Date</td>
               </tr>
               <tr>
-                <td class="bold">${tx.sbNumber} &nbsp;&nbsp; ${fmt(tx.date)}</td>
+                <td class="bold">${tx.invoiceNumber || 'N.A.'} &nbsp;&nbsp; ${fmt(tx.date)}</td>
               </tr>
               <tr>
-                <td style="font-size:10px; padding-top:5px;">AT4/AR4 No. &amp; date</td>
+                <td style="font-size:10px; padding-top:5px;">AR4/AR4A No. &amp; Date</td>
               </tr>
               <tr>
-                <td>N.A</td>
+                <td>${tx.ar4Number || 'N.A.'}</td>
               </tr>
               <tr>
-                <td style="font-size:10px; padding-top:5px;">Q/Certi No. &amp; date</td>
+                <td style="font-size:10px; padding-top:5px;">Q/Certi No. &amp; Date</td>
               </tr>
               <tr>
-                <td>N.A</td>
+                <td>${tx.qCertNumber || 'N.A.'}</td>
               </tr>
             </table>
           </td>
-          <!-- FAR RIGHT: Dated, IEC, BIN -->
+          <!-- FAR RIGHT: SB No & Date, IEC, BIN -->
           <td style="width:25%; vertical-align:top; border-left:1px solid #000; padding-left:5px;">
-            <div class="bold" style="font-size:12px;">DATED :- &nbsp;&nbsp; ${fmt(tx.date)}</div>
+            <div style="font-size:10px;">SB No. &amp; Date: F/B:</div>
+            <div class="bold" style="font-size:11px; margin-bottom: 4px;">SB No. _________________</div>
+            <div class="bold" style="font-size:11px;">DATE: ${fmt(tx.date)}</div>
             <br>
             <div style="font-size:10px;">Import Export Code No. &amp; BIN</div>
-            <div class="bold">${company.iec || 'AAXFD9284E'}</div>
-            <div class="bold">${company.gstin || '24AAXFD9284E1ZW'}</div>
+            <div class="bold">${company.iec || '________________'}</div>
+            <div class="bold">${company.gstin || '________________'}</div>
             <br>
-            <div style="font-size:10px;">State Origin of Goods</div>
+            <div style="font-size:10px;">State Origin of Goods<br><b>IMPORT BONDED GOODS</b></div>
           </td>
         </tr>
       </table>

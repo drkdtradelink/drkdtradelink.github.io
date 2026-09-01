@@ -16,10 +16,12 @@ router.use((req, res, next) => {
 
 router.get('/', async (req, res) => {
   try {
-    const targetCompanyId = req.company?.id || req.user?.companyId;
-    if (!targetCompanyId) {
+    const targetCompanyId = req.query.companyId || req.company?.id || req.user?.companyId;
+    if (!targetCompanyId && req.user.role !== 'admin') {
       return res.status(400).json({ error: 'companyId is required.' });
     }
+
+    const whereClause = targetCompanyId ? { companyId: targetCompanyId } : {};
 
     const today = new Date();
     const thirtyDaysFromNow = new Date(today);
@@ -28,25 +30,32 @@ router.get('/', async (req, res) => {
     // 1. Expired Bonds (Stock items with expiryDate < today and remainingQuantity > 0)
     const expiredStock = await prisma.stockItem.findMany({
       where: {
-        companyId: targetCompanyId,
+        ...whereClause,
         remainingQuantity: { gt: 0 },
         bondExpiryDate: { lt: today }
+      },
+      include: {
+        company: true
       }
     });
 
     // 2. Bonds expiring in a month (today <= expiryDate <= 30 days from now)
     const expiringStock = await prisma.stockItem.findMany({
       where: {
-        companyId: targetCompanyId,
+        ...whereClause,
         remainingQuantity: { gt: 0 },
         bondExpiryDate: { gte: today, lte: thirtyDaysFromNow }
+      },
+      include: {
+        company: true
       }
     });
 
     // 3. Expiring / Expired BGs
     const bgs = await prisma.bankGuarantee.findMany({
-      where: {
-        companyId: targetCompanyId
+      where: whereClause,
+      include: {
+        company: true
       }
     });
     
@@ -55,21 +64,23 @@ router.get('/', async (req, res) => {
 
     // 4. Pending Monthly Return (last month)
     let pendingReturn = null;
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const lastMonthPeriod = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
-    
-    const returnDoc = await prisma.monthlyReturn.findFirst({
-      where: {
-        companyId: targetCompanyId,
-        period: lastMonthPeriod
-      }
-    });
+    if (targetCompanyId) {
+      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const lastMonthPeriod = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+      
+      const returnDoc = await prisma.monthlyReturn.findFirst({
+        where: {
+          companyId: targetCompanyId,
+          period: lastMonthPeriod
+        }
+      });
 
-    if (!returnDoc || returnDoc.status === 'draft') {
-      pendingReturn = {
-        period: lastMonthPeriod,
-        message: 'Monthly return for last month is not submitted.'
-      };
+      if (!returnDoc || returnDoc.status === 'draft') {
+        pendingReturn = {
+          period: lastMonthPeriod,
+          message: `Monthly return for ${lastMonthPeriod} is not submitted.`
+        };
+      }
     }
 
     res.json({

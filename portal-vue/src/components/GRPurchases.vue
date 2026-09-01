@@ -121,7 +121,7 @@
           </td>
           <td>
             <div class="flex gap-1 flex-wrap">
-              <button v-if="tx.status === 'draft'" @click="finalize(tx.id)" class="btn btn-primary btn-sm mr-2" :disabled="loading">Finalize</button>
+              <button v-if="tx.status === 'draft'" @click="openFinalizeModal(tx.id)" class="btn btn-primary btn-sm mr-2" :disabled="loading">Finalize</button>
               <button @click="openPreview(tx, 'bond')" class="btn btn-secondary btn-sm">Preview Docs</button>
             </div>
           </td>
@@ -164,6 +164,25 @@
 
     </div>
   </div>
+  <!-- FINALIZE MODAL FOR CUSTOM BOND NUMBER -->
+  <div v-if="showFinalizeModal" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="modal-card" style="background: white; border-radius: 8px; width: 100%; max-width: 450px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+      <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: #1e3a8a;">Finalize GR Purchase</h3>
+      <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">
+        Please enter the official <strong>Customs Allotted Bond Number</strong> to finalize this purchase and transfer stock to warehouse inventory.
+      </p>
+      <form @submit.prevent="submitFinalize">
+        <div class="form-group mb-4">
+          <label class="form-label" style="font-weight: 600;">Customs Allotted Bond Number *</label>
+          <input type="text" v-model="customBondNumberInput" class="form-control" placeholder="e.g. BOND/2026/089" required />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" @click="showFinalizeModal = false" class="btn btn-secondary btn-sm">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" :disabled="loading">Confirm &amp; Finalize</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -190,6 +209,9 @@ const transactions = ref([]);
 const loading = ref(false);
 
 const showPreviewModal = ref(false);
+const showFinalizeModal = ref(false);
+const finalizeTxId = ref(null);
+const customBondNumberInput = ref('');
 const activeTx = ref(null);
 const activeDoc = ref('bond');
 
@@ -281,13 +303,27 @@ const createTransaction = async () => {
   }
 };
 
-const finalize = async (id) => {
-  if (!confirm('Are you sure you want to finalize? This will lock the document and add stock to inventory.')) return;
+const openFinalizeModal = (id) => {
+  finalizeTxId.value = id;
+  customBondNumberInput.value = '';
+  showFinalizeModal.value = true;
+};
+
+const submitFinalize = async () => {
+  if (!customBondNumberInput.value.trim()) {
+    alert('Please enter Customs Allotted Bond Number.');
+    return;
+  }
   loading.value = true;
   try {
-    const res = await fetch(getApiUrl(`/api/gr-purchases/${id}/finalize`), { method: 'POST', headers: getHeaders() });
+    const res = await fetch(getApiUrl(`/api/gr-purchases/${finalizeTxId.value}/finalize`), {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ customBondNumber: customBondNumberInput.value.trim() })
+    });
     if (res.ok) {
-      alert('Finalized successfully!');
+      alert('Finalized successfully! Stock added to inventory.');
+      showFinalizeModal.value = false;
       loadTransactions();
     } else {
       const err = await res.json();

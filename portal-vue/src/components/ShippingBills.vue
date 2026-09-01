@@ -159,7 +159,7 @@
           </td>
           <td>
             <div class="flex gap-1 flex-wrap">
-              <button v-if="tx.status === 'draft'" @click="finalize(tx.id)" class="btn btn-primary btn-sm mr-2" :disabled="loading">Finalize</button>
+              <button v-if="tx.status === 'draft'" @click="openFinalizeModal(tx.id)" class="btn btn-primary btn-sm mr-2" :disabled="loading">Finalize</button>
               <button @click="openPreview(tx, 'sb-all')" class="btn btn-secondary btn-sm">Preview Docs</button>
             </div>
           </td>
@@ -203,6 +203,25 @@
 
     </div>
   </div>
+  <!-- FINALIZE MODAL FOR CUSTOM SB NUMBER -->
+  <div v-if="showFinalizeModal" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="modal-card" style="background: white; border-radius: 8px; width: 100%; max-width: 450px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+      <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: #1e3a8a;">Finalize Shipping Bill</h3>
+      <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">
+        Please enter the official <strong>Customs Allotted Shipping Bill (SB) Number</strong> to finalize and deduct stock from inventory.
+      </p>
+      <form @submit.prevent="submitFinalize">
+        <div class="form-group mb-4">
+          <label class="form-label" style="font-weight: 600;">Customs Allotted SB Number *</label>
+          <input type="text" v-model="customSbNumberInput" class="form-control" placeholder="e.g. SB/2026/045" required />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" @click="showFinalizeModal = false" class="btn btn-secondary btn-sm">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" :disabled="loading">Confirm &amp; Finalize</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -240,6 +259,9 @@ const availableStock = ref([]);
 const loading = ref(false);
 
 const showPreviewModal = ref(false);
+const showFinalizeModal = ref(false);
+const finalizeTxId = ref(null);
+const customSbNumberInput = ref('');
 const activeTx = ref(null);
 const activeDoc = ref('sb-all');
 
@@ -345,14 +367,29 @@ const createTransaction = async () => {
   }
 };
 
-const finalize = async (id) => {
-  if (!confirm('Are you sure? This will deduct stock and lock the document.')) return;
+const openFinalizeModal = (id) => {
+  finalizeTxId.value = id;
+  customSbNumberInput.value = '';
+  showFinalizeModal.value = true;
+};
+
+const submitFinalize = async () => {
+  if (!customSbNumberInput.value.trim()) {
+    alert('Please enter Customs Allotted SB Number.');
+    return;
+  }
   loading.value = true;
   try {
-    const res = await fetch(getApiUrl(`/api/shipping-bills/${id}/finalize`), { method: 'POST', headers: getHeaders() });
+    const res = await fetch(getApiUrl(`/api/shipping-bills/${finalizeTxId.value}/finalize`), {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ customSbNumber: customSbNumberInput.value.trim() })
+    });
     if (res.ok) {
-      alert('Finalized successfully!');
+      alert('Finalized successfully! Stock deducted.');
+      showFinalizeModal.value = false;
       loadTransactions();
+      loadStock();
     } else {
       const err = await res.json();
       alert(err.error || 'Failed to finalize');

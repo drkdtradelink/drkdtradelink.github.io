@@ -237,6 +237,120 @@
             </div>
           </div>
 
+          <!-- Critical To-Do & Compliance Section -->
+          <div class="card mb-6" style="border-left: 4px solid #3b82f6; margin-bottom: 24px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🚨</span>
+                <span class="card-title" style="margin: 0; font-size: 16px;">Critical To-Do &amp; Compliance Alerts</span>
+              </div>
+              <button @click="fetchAlerts" class="btn btn-secondary btn-sm" style="font-size: 12px;">🔄 Refresh Alerts</button>
+            </div>
+
+            <!-- 1. Overdue Monthly Return Alert -->
+            <div v-if="dashboardAlerts.pendingReturn" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">⚠️</span>
+                <div>
+                  <div style="font-weight: 700; color: #92400e; font-size: 14px;">Monthly Return Pending Submission</div>
+                  <div style="font-size: 13px; color: #78350f;">{{ dashboardAlerts.pendingReturn.message }}</div>
+                </div>
+              </div>
+              <button @click="navigate('#/monthly-returns')" class="btn btn-primary btn-sm">Prepare Monthly Return &rarr;</button>
+            </div>
+
+            <!-- 2. Expired Bonds Alert (Critical) -->
+            <div v-if="dashboardAlerts.expiredStock && dashboardAlerts.expiredStock.length" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <span class="badge badge-danger" style="font-size: 12px; padding: 3px 8px;">EXPIRED BONDS (ACTION REQUIRED)</span>
+                <span style="font-size: 13px; color: #991b1b; font-weight: 600;">{{ dashboardAlerts.expiredStock.length }} inventory item(s) have expired bond validity!</span>
+              </div>
+              <div class="table-container" style="background: white;">
+                <table class="table-main" style="font-size: 13px;">
+                  <thead>
+                    <tr style="background-color: #fee2e2;">
+                      <th>Commodity</th>
+                      <th>Bond Details</th>
+                      <th>Bond Expiry</th>
+                      <th>Remaining Qty</th>
+                      <th>Present Duty (INR)</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in dashboardAlerts.expiredStock" :key="item.id">
+                      <td style="font-weight: 600;">{{ item.commodityName }}</td>
+                      <td>{{ item.bondDetails }}</td>
+                      <td style="color: #dc2626; font-weight: 700;">{{ formatDate(item.bondExpiryDate) }} (EXPIRED)</td>
+                      <td><b>{{ item.remainingQuantity }}</b> {{ item.unit }}</td>
+                      <td>₹{{ Number(item.presentDutyBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</td>
+                      <td>
+                        <button @click="navigate('#/stock')" class="btn btn-secondary btn-sm">Manage Stock</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 3. Expiring Bonds Alert (Within 30 Days) -->
+            <div v-if="dashboardAlerts.expiringStock && dashboardAlerts.expiringStock.length" style="background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <span class="badge badge-warning" style="font-size: 12px; padding: 3px 8px;">BONDS EXPIRING SOON</span>
+                <span style="font-size: 13px; color: #9a3412; font-weight: 600;">{{ dashboardAlerts.expiringStock.length }} inventory item(s) expiring within 30 days</span>
+              </div>
+              <div class="table-container" style="background: white;">
+                <table class="table-main" style="font-size: 13px;">
+                  <thead>
+                    <tr style="background-color: #ffedd5;">
+                      <th>Commodity</th>
+                      <th>Bond Details</th>
+                      <th>Expiry Date</th>
+                      <th>Remaining Qty</th>
+                      <th>Present Duty (INR)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in dashboardAlerts.expiringStock" :key="item.id">
+                      <td style="font-weight: 600;">{{ item.commodityName }}</td>
+                      <td>{{ item.bondDetails }}</td>
+                      <td style="color: #ea580c; font-weight: 700;">{{ formatDate(item.bondExpiryDate) }}</td>
+                      <td><b>{{ item.remainingQuantity }}</b> {{ item.unit }}</td>
+                      <td>₹{{ Number(item.presentDutyBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 4. Bank Guarantee Alerts -->
+            <div v-if="(dashboardAlerts.expiredBGs && dashboardAlerts.expiredBGs.length) || (dashboardAlerts.expiringBGs && dashboardAlerts.expiringBGs.length)" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: 700; color: #1e293b;">Bank Guarantee (BG) Validity Notifications</span>
+                <button @click="navigate('#/bank')" class="btn btn-secondary btn-sm">Manage BGs &rarr;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div v-for="bg in dashboardAlerts.expiredBGs" :key="'exp-bg-'+bg.id" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fee2e2; border-radius: 4px; font-size: 13px;">
+                  <span class="badge badge-danger">EXPIRED BG</span>
+                  <span><strong>{{ bg.bankName }}</strong> (BG No: {{ bg.bgNumber }}) of <strong>₹{{ Number(bg.amount).toLocaleString('en-IN') }}</strong> expired on {{ formatDate(bg.expiryDate) }}</span>
+                </div>
+                <div v-for="bg in dashboardAlerts.expiringBGs" :key="'expiring-bg-'+bg.id" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fef3c7; border-radius: 4px; font-size: 13px;">
+                  <span class="badge badge-warning">EXPIRING BG</span>
+                  <span><strong>{{ bg.bankName }}</strong> (BG No: {{ bg.bgNumber }}) of <strong>₹{{ Number(bg.amount).toLocaleString('en-IN') }}</strong> expires on {{ formatDate(bg.expiryDate) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. All Clear State -->
+            <div v-if="!dashboardAlerts.pendingReturn && (!dashboardAlerts.expiredStock || !dashboardAlerts.expiredStock.length) && (!dashboardAlerts.expiringStock || !dashboardAlerts.expiringStock.length) && (!dashboardAlerts.expiredBGs || !dashboardAlerts.expiredBGs.length) && (!dashboardAlerts.expiringBGs || !dashboardAlerts.expiringBGs.length)" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 16px; display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 22px;">✅</span>
+              <div>
+                <div style="font-weight: 700; color: #065f46; font-size: 14px;">All Compliance &amp; Bonds in Good Standing</div>
+                <div style="font-size: 13px; color: #047857;">No expired bonds, pending monthly returns, or expiring bank guarantees requiring immediate attention.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
             <!-- Recent GR Documents -->
             <div class="card">
@@ -512,7 +626,7 @@
                   Edit Draft Package
                 </button>
                 <!-- Finalize button if draft -->
-                <button v-if="selectedGRDoc?.transaction?.status === 'draft'" @click="finalizeGRDocumentPackage(false)" class="btn btn-primary">
+                <button v-if="selectedGRDoc?.transaction?.status === 'draft'" @click="openFinalizeGrModal" class="btn btn-primary">
                   Finalize & Lock Document
                 </button>
                 <!-- Cancel button if generated -->
@@ -579,17 +693,38 @@
         <div v-if="currentRoute === '#/stock'">
           <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-              <div class="card-title">Stock / Bonded Shipments Inventory</div>
-              <div style="display: flex; gap: 16px; align-items: center;">
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text);">
-                  <input type="checkbox" v-model="hideZeroStock"> Hide zero-stock items in GR dropdown
-                </label>
-                <button type="button" @click="openCreateStockModal" class="btn btn-primary btn-sm">+ Add Stock Item</button>
+              <div>
+                <div class="card-title" style="margin-bottom: 2px;">Stock / Bonded Shipments Inventory</div>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Manage bonded stock consignments, tracking, and duty calculations</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" @click="openCreateConsignmentModal" class="btn btn-primary btn-sm">📦 + Add Consignment (Batch)</button>
+                <button type="button" @click="openCreateStockModal" class="btn btn-secondary btn-sm">+ Add Single Item</button>
               </div>
             </div>
 
-            <div v-if="!allStock.length" style="padding: 40px; text-align: center; color: var(--text-muted);">
-              No stock items in inventory. Click "+ Add Stock Item" to create.
+            <!-- Filters & Search Bar -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; background: #f8fafc; padding: 14px; border-radius: 6px; border: 1px solid var(--border);">
+              <div style="flex: 2; min-width: 220px;">
+                <input type="text" v-model="stockSearchFilter" placeholder="Search by Commodity Name, Bond No, BE No..." class="form-control" style="font-size: 13px;">
+              </div>
+              <div style="flex: 1; min-width: 150px;">
+                <select v-model="stockTypeFilter" class="form-control" style="font-size: 13px;">
+                  <option value="">All Commodity Types</option>
+                  <option value="Beer">Beer</option>
+                  <option value="Alcohol/Wine">Alcohol/Wine</option>
+                  <option value="Cigarettes">Cigarettes</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-main); margin: 0;">
+                  <input type="checkbox" v-model="hideZeroStock"> Hide zero-stock items
+                </label>
+              </div>
+            </div>
+
+            <div v-if="!stockTableItems.length" style="padding: 40px; text-align: center; color: var(--text-muted);">
+              No stock items found matching current filters. Click "+ Add Consignment" to add batch stock.
             </div>
 
             <div v-else class="table-container">
@@ -599,24 +734,40 @@
                     <th>Commodity Name</th>
                     <th v-if="currentUser?.role === 'admin'">Company</th>
                     <th>Type</th>
+                    <th>BE / GR Details</th>
                     <th>Bond Details</th>
-                    <th>Price/Case</th>
-                    <th>Seeded Duty</th>
+                    <th>Bond Expiry</th>
+                    <th>Price/Unit</th>
+                    <th>Duty %</th>
                     <th>Qty (Total / Rem)</th>
+                    <th>Present Duty Balance</th>
                     <th>Status</th>
                     <th v-if="['admin', 'manager'].includes(currentUser?.role)">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in allStock" :key="item.id">
+                  <tr v-for="item in stockTableItems" :key="item.id">
                     <td style="font-weight: 600;">{{ item.commodityName }}</td>
                     <td v-if="currentUser?.role === 'admin'"><span class="badge badge-info">{{ item.company?.displayName }}</span></td>
-                    <td>{{ item.commodityType }}</td>
-                    <td><span style="font-size: 11px; color: var(--text-muted);">{{ item.beDetails }}</span><br>{{ item.bondDetails }}</td>
-                    <td>${{ item.pricePerCaseUSD.toFixed(2) }}</td>
+                    <td><span class="badge" style="background-color: #f1f5f9; color: #475569;">{{ item.commodityType }}</span></td>
+                    <td><span style="font-size: 11px; color: var(--text-muted);">{{ item.beDetails }}</span></td>
+                    <td><span style="font-size: 11px; font-weight: 600; color: #1e40af;">{{ item.bondDetails }}</span></td>
+                    <td>
+                      <span v-if="item.bondExpiryDate" :style="{ color: new Date(item.bondExpiryDate) < new Date() && item.remainingQuantity > 0 ? '#dc2626' : '#475569', fontWeight: new Date(item.bondExpiryDate) < new Date() && item.remainingQuantity > 0 ? '700' : 'normal' }">
+                        {{ formatDate(item.bondExpiryDate) }}
+                        <span v-if="new Date(item.bondExpiryDate) < new Date() && item.remainingQuantity > 0" class="badge badge-danger" style="margin-left: 4px; font-size: 9px;">EXPIRED</span>
+                      </span>
+                      <span v-else style="color: var(--text-muted); font-size: 11px;">-</span>
+                    </td>
+                    <td>${{ Number(item.pricePerCaseUSD || 0).toFixed(2) }}</td>
                     <td>{{ item.dutyPercentage }}%</td>
                     <td>{{ item.totalQuantity }} / <b>{{ item.remainingQuantity }}</b> {{ item.unit }}</td>
-                    <td><span class="badge" :class="item.remainingQuantity > 0 ? 'badge-success' : 'badge-danger'">{{ item.remainingQuantity > 0 ? 'In Stock' : 'Cleared' }}</span></td>
+                    <td style="font-weight: 600;">₹{{ Number(item.presentDutyBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</td>
+                    <td>
+                      <span class="badge" :class="item.remainingQuantity > 0 ? 'badge-success' : 'badge-danger'">
+                        {{ item.remainingQuantity > 0 ? 'In Stock' : 'Cleared' }}
+                      </span>
+                    </td>
                     <td v-if="['admin', 'manager'].includes(currentUser?.role)">
                       <button type="button" @click="editStockItem(item)" class="btn btn-secondary btn-sm">Edit</button>
                     </td>
@@ -626,7 +777,124 @@
             </div>
           </div>
 
-          <!-- Add/Edit Stock Modal -->
+          <!-- Add Consignment (Batch) Modal -->
+          <div v-if="showConsignmentModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+            <div class="card" style="width: 95vw; max-width: 1000px; margin-bottom: 0; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Add Inbound Consignment (Batch Stock Entry)</div>
+                  <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Enter shared BE/Bond details once, then add multiple commodity items in this batch</p>
+                </div>
+                <button type="button" @click="showConsignmentModal = false" class="btn btn-secondary btn-sm">Close</button>
+              </div>
+              <form @submit.prevent="submitConsignment">
+                <!-- Admin Company Target Selector -->
+                <div v-if="currentUser?.role === 'admin'" class="form-group" style="background-color: #eff6ff; padding: 12px; border-radius: 6px; border: 1px solid #bfdbfe; margin-bottom: 16px;">
+                  <label class="form-label" style="color: #1e40af; font-weight: 600;">Target Company</label>
+                  <select v-model="consignmentForm.companyId" class="form-control" required>
+                    <option value="">-- Choose Company --</option>
+                    <option v-for="comp in allCompanies" :key="comp.id" :value="comp.id">{{ comp.displayName }}</option>
+                  </select>
+                </div>
+
+                <!-- Shared Consignment Master Info -->
+                <div style="background-color: #f8fafc; padding: 16px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 20px;">
+                  <h4 style="font-size: 13px; text-transform: uppercase; font-weight: 700; color: #475569; margin-bottom: 12px; letter-spacing: 0.5px;">Master Consignment Details</h4>
+                  <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Purchase Type *</label>
+                      <select v-model="consignmentForm.purchaseType" class="form-control" required>
+                        <option value="BE">Bill of Entry (BE)</option>
+                        <option value="GR">GR Purchase</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">BE or GR Number *</label>
+                      <input type="text" v-model="consignmentForm.purchaseNumber" placeholder="e.g. 98765/26" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">BE or GR Date *</label>
+                      <input type="date" v-model="consignmentForm.purchaseDate" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Bond Number *</label>
+                      <input type="text" v-model="consignmentForm.bondNumber" placeholder="e.g. BOND/2026/102" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Bond Date *</label>
+                      <input type="date" v-model="consignmentForm.bondDate" class="form-control" required>
+                    </div>
+                  </div>
+                  <p style="font-size: 11px; color: var(--text-muted); margin: 8px 0 0 0;">Note: Bond Expiry will be automatically calculated as exactly 1 year from Bond Date.</p>
+                </div>
+
+                <!-- Consignment Items Table -->
+                <div style="margin-bottom: 16px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="font-size: 13px; text-transform: uppercase; font-weight: 700; color: #475569; margin: 0; letter-spacing: 0.5px;">Consignment Commodity Items</h4>
+                    <button type="button" @click="addConsignmentItem" class="btn btn-secondary btn-sm">+ Add Item Row</button>
+                  </div>
+                  <div class="table-container">
+                    <table class="table-main" style="font-size: 13px;">
+                      <thead>
+                        <tr>
+                          <th>Commodity Name *</th>
+                          <th>Type *</th>
+                          <th>Quantity *</th>
+                          <th>Unit</th>
+                          <th>Packing</th>
+                          <th>Rate ($/Unit)</th>
+                          <th>Duty %</th>
+                          <th>Duty Balance (INR)</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(item, idx) in consignmentForm.items" :key="'c-item-'+idx">
+                          <td><input type="text" v-model="item.commodityName" placeholder="e.g. Corona Extra" class="form-control" style="font-size: 12px; padding: 6px 8px;" required></td>
+                          <td>
+                            <select v-model="item.commodityType" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 110px;" required>
+                              <option value="Beer">Beer</option>
+                              <option value="Alcohol/Wine">Alcohol/Wine</option>
+                              <option value="Cigarettes">Cigarettes</option>
+                            </select>
+                          </td>
+                          <td><input type="number" min="1" v-model.number="item.totalQuantity" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 70px;" required></td>
+                          <td>
+                            <select v-model="item.unit" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 90px;">
+                              <option value="Cases">Cases</option>
+                              <option value="Cartons">Cartons</option>
+                              <option value="Boxes">Boxes</option>
+                              <option value="Bottles">Bottles</option>
+                            </select>
+                          </td>
+                          <td><input type="text" v-model="item.packing" placeholder="24x330ml" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 100px;"></td>
+                          <td><input type="number" step="0.01" min="0" v-model.number="item.pricePerCaseUSD" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 80px;" required></td>
+                          <td><input type="number" step="0.1" min="0" v-model.number="item.dutyPercentage" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 70px;" required></td>
+                          <td><input type="number" step="0.01" min="0" v-model.number="item.presentDutyBalance" class="form-control" style="font-size: 12px; padding: 6px 8px; width: 110px;" required></td>
+                          <td><button type="button" @click="removeConsignmentItem(idx)" class="btn btn-danger btn-sm" :disabled="consignmentForm.items.length <= 1">✕</button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+                  <div style="font-size: 13px; color: var(--text-muted);">
+                    Total Items: <strong>{{ consignmentForm.items.length }}</strong> | 
+                    Total Qty: <strong>{{ consignmentForm.items.reduce((s,i) => s + (+i.totalQuantity||0), 0) }}</strong> |
+                    Total Duty: <strong>₹{{ consignmentForm.items.reduce((s,i) => s + (+i.presentDutyBalance||0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</strong>
+                  </div>
+                  <div style="display: flex; gap: 10px;">
+                    <button type="button" @click="showConsignmentModal = false" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Consignment Stock</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Add/Edit Single Stock Modal -->
           <div v-if="showStockModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
             <div class="card" style="width: 100%; max-width: 600px; margin-bottom: 0; max-height: 90vh; overflow-y: auto;">
               <div class="card-header">
@@ -639,7 +907,7 @@
                   <label class="form-label" style="color: #1e40af;">Target Company</label>
                   <select v-model="stockForm.companyId" class="form-control" required>
                     <option value="">-- Choose Company --</option>
-                    <option v-for="comp in allCompanies" :value="comp.id">{{ comp.displayName }}</option>
+                    <option v-for="comp in allCompanies" :key="comp.id" :value="comp.id">{{ comp.displayName }}</option>
                   </select>
                 </div>
 
@@ -653,6 +921,7 @@
                     <select v-model="stockForm.commodityType" class="form-control" required>
                       <option value="Beer">Beer</option>
                       <option value="Alcohol/Wine">Alcohol/Wine</option>
+                      <option value="Cigarettes">Cigarettes</option>
                     </select>
                   </div>
                   <div class="form-group">
@@ -947,6 +1216,26 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Finalize GR Document Modal (Custom GR Number) -->
+          <div v-if="showFinalizeGrModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;">
+            <div class="card" style="width: 100%; max-width: 480px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+              <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: var(--primary);">Finalize GR Document Package</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Please enter the official <strong>Customs Allotted GR Number</strong> to lock calculations, finalize documents, and deduct warehouse stock and duty balance.
+              </p>
+              <form @submit.prevent="submitFinalizeGr(false)">
+                <div class="form-group" style="margin-bottom: 16px;">
+                  <label class="form-label" style="font-weight: 600;">Customs Allotted GR Number *</label>
+                  <input type="text" v-model="customGrNumberInput" class="form-control" placeholder="e.g. GR/2026/012" required autofocus />
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                  <button type="button" @click="showFinalizeGrModal = false" class="btn btn-secondary btn-sm">Cancel</button>
+                  <button type="submit" class="btn btn-primary btn-sm">Confirm &amp; Finalize</button>
+                </div>
+              </form>
             </div>
           </div>
 
@@ -1479,6 +1768,22 @@ const isCustomsDocsOpen = ref(true);
       const onboardingBank = ref({ accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branchName: '', isPrimary: true });
       const onboardingBG = ref({ bgNumber: '', bankName: '', amount: null, expiryDate: '' });
 
+      const showFinalizeGrModal = ref(false);
+      const customGrNumberInput = ref('');
+      const showConsignmentModal = ref(false);
+      const dashboardAlerts = ref({ expiredStock: [], expiringStock: [], expiringBGs: [], expiredBGs: [], pendingReturn: null });
+      const stockSearchFilter = ref('');
+      const stockTypeFilter = ref('');
+      const consignmentForm = ref({
+        companyId: '',
+        purchaseType: 'BE',
+        purchaseNumber: '',
+        purchaseDate: new Date().toISOString().split('T')[0],
+        bondNumber: '',
+        bondDate: new Date().toISOString().split('T')[0],
+        items: []
+      });
+
       const showCompanyModal = ref(false);
       const showDeleteCompanyModal = ref(false);
       const companyToDelete = ref(null);
@@ -1676,6 +1981,27 @@ const isCustomsDocsOpen = ref(true);
         return list;
       });
 
+      const stockTableItems = computed(() => {
+        let list = allStock.value;
+        if (hideZeroStock.value) {
+          list = list.filter(s => s.remainingQuantity > 0);
+        }
+        if (stockTypeFilter.value) {
+          list = list.filter(s => s.commodityType === stockTypeFilter.value);
+        }
+        if (stockSearchFilter.value.trim()) {
+          const q = stockSearchFilter.value.trim().toLowerCase();
+          list = list.filter(s =>
+            (s.commodityName && s.commodityName.toLowerCase().includes(q)) ||
+            (s.bondNumber && s.bondNumber.toLowerCase().includes(q)) ||
+            (s.purchaseNumber && s.purchaseNumber.toLowerCase().includes(q)) ||
+            (s.beDetails && s.beDetails.toLowerCase().includes(q)) ||
+            (s.bondDetails && s.bondDetails.toLowerCase().includes(q))
+          );
+        }
+        return list;
+      });
+
       const filteredUsers = computed(() => {
         if (!userFilterCompanyId.value) return allUsers.value;
         return allUsers.value.filter(u => u.companyId === userFilterCompanyId.value);
@@ -1817,6 +2143,7 @@ const isCustomsDocsOpen = ref(true);
             fetchStock();
             fetchParties();
             fetchGRDocs();
+            fetchAlerts();
             fetchOnboardingStatus();
           } else if (currentRoute.value === '#/gr-docs') {
             fetchGRDocs();
@@ -1848,6 +2175,120 @@ const isCustomsDocsOpen = ref(true);
             }
           }
         });
+      };
+
+      const fetchAlerts = async () => {
+        try {
+          const res = await fetch(getApiUrl('/api/alerts'), { headers: getHeaders() });
+          if (res.ok) {
+            dashboardAlerts.value = await res.json();
+          }
+        } catch (e) {
+          console.error('Failed to fetch dashboard alerts', e);
+        }
+      };
+
+      const addConsignmentItem = () => {
+        consignmentForm.value.items.push({
+          commodityName: '',
+          commodityType: 'Beer',
+          totalQuantity: 1,
+          packing: '',
+          unit: 'Cases',
+          pricePerCaseUSD: 0,
+          dutyPercentage: 110,
+          presentDutyBalance: 0
+        });
+      };
+
+      const removeConsignmentItem = (idx) => {
+        consignmentForm.value.items.splice(idx, 1);
+      };
+
+      const openCreateConsignmentModal = () => {
+        consignmentForm.value = {
+          companyId: currentUser.value?.role === 'admin' ? '' : (currentUser.value?.companyId || ''),
+          purchaseType: 'BE',
+          purchaseNumber: '',
+          purchaseDate: new Date().toISOString().split('T')[0],
+          bondNumber: '',
+          bondDate: new Date().toISOString().split('T')[0],
+          items: [
+            {
+              commodityName: '',
+              commodityType: 'Beer',
+              totalQuantity: 1,
+              packing: '',
+              unit: 'Cases',
+              pricePerCaseUSD: 0,
+              dutyPercentage: 110,
+              presentDutyBalance: 0
+            }
+          ]
+        };
+        showConsignmentModal.value = true;
+      };
+
+      const submitConsignment = async () => {
+        if (!consignmentForm.value.items.length) {
+          alert('Please add at least one stock item.');
+          return;
+        }
+        try {
+          const res = await fetch(getApiUrl('/api/stock/consignment'), {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(consignmentForm.value)
+          });
+          if (res.ok) {
+            alert('Consignment stock registered successfully!');
+            showConsignmentModal.value = false;
+            fetchStock();
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to save consignment.');
+          }
+        } catch (e) {
+          alert('Network error while saving consignment.');
+        }
+      };
+
+      const openFinalizeGrModal = () => {
+        customGrNumberInput.value = '';
+        showFinalizeGrModal.value = true;
+      };
+
+      const submitFinalizeGr = async (force = false) => {
+        if (!customGrNumberInput.value.trim()) {
+          alert('Customs Allotted GR Number is required.');
+          return;
+        }
+        const id = selectedGRDoc.value?.transaction?.id;
+        if (!id) return;
+        const url = `/api/gr-docs/${id}/generate${force ? '?force=true' : ''}`;
+        const res = await fetch(getApiUrl(url), {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ customGrNumber: customGrNumberInput.value.trim(), force })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (data.warning) {
+            let warningMsg = 'WARNING: Stock or duty values have changed since this draft was saved:\n\n';
+            data.changes.forEach(change => {
+              warningMsg += `- ${change.item} (${change.field}): ${change.oldVal} -> ${change.newVal}\n`;
+            });
+            warningMsg += '\nDo you still want to proceed and finalize this document?';
+            triggerConfirm('Values Changed - Confirm Finalization', warningMsg, () => {
+              submitFinalizeGr(true);
+            });
+          } else {
+            showFinalizeGrModal.value = false;
+            fetchSingleGRDoc(id);
+          }
+        } else {
+          alert(data.error || 'Failed to finalize GR Document package.');
+        }
       };
 
       const fetchOnboardingStatus = async () => {

@@ -162,6 +162,92 @@ router.post('/', async (req, res) => {
 });
 
 /**
+ * @route POST /api/stock/consignment
+ * @desc Create a batch of stock items (consignment) and enforce BG limit
+ */
+router.post('/consignment', async (req, res) => {
+  try {
+    const { purchaseType, purchaseNumber, purchaseDate, bondNumber, bondDate, items } = req.body;
+    let targetCompanyId = req.company?.id;
+    if (req.user.role === 'admin' && req.body.companyId) {
+      targetCompanyId = req.body.companyId;
+    }
+    if (!targetCompanyId) return res.status(400).json({ error: 'companyId is required.' });
+    if (!purchaseType || !purchaseNumber || !purchaseDate || !bondNumber || !bondDate || !items || !items.length) {
+      return res.status(400).json({ error: 'Missing required consignment master details or items.' });
+    }
+
+    let newDuty = 0;
+    for (const item of items) {
+      newDuty += parseFloat(item.presentDutyBalance || 0);
+    }
+
+    // BG Check
+    const bgs = await prisma.bankGuarantee.findMany({ where: { companyId: targetCompanyId } });
+    if (bgs.length > 0) {
+      let totalBgLimit = 0;
+      const bgMap = {};
+      for (const bg of bgs) {
+        if (!bgMap[bg.bgNumber] || bg.amount > bgMap[bg.bgNumber]) {
+          bgMap[bg.bgNumber] = bg.amount;
+        }
+      }
+      for (const bgNumber in bgMap) {
+        totalBgLimit += bgMap[bgNumber];
+      }
+      const activeStocks = await prisma.stockItem.findMany({ where: { companyId: targetCompanyId, remainingQuantity: { gt: 0 } } });
+      const currentDuty = activeStocks.reduce((sum, s) => sum + (s.presentDutyBalance || 0), 0);
+      if (currentDuty + newDuty > totalBgLimit) {
+        return res.status(400).json({ error: `Total duty (${(currentDuty + newDuty).toFixed(2)}) exceeds Bank Guarantee limit (${totalBgLimit.toFixed(2)}).` });
+      }
+    }
+
+    const bDate = new Date(bondDate);
+    const expiryDate = new Date(bDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+    const createdItems = [];
+    const finalBeDetails = `${purchaseType} NO: ${purchaseNumber} DT: ${formatDateString(purchaseDate)}`;
+    const finalBondDetails = `BOND NO: ${bondNumber} DT: ${formatDateString(bondDate)}`;
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const created = await tx.stockItem.create({
+          data: {
+            companyId: targetCompanyId,
+            commodityName: item.commodityName,
+            commodityType: item.commodityType,
+            purchaseType,
+            purchaseNumber,
+            purchaseDate: new Date(purchaseDate),
+            bondNumber,
+            bondDate: bDate,
+            beDetails: finalBeDetails,
+            bondDetails: finalBondDetails,
+            bondExpiryDate: expiryDate,
+            pricePerCaseUSD: parseFloat(item.pricePerCaseUSD) || 0,
+            totalQuantity: parseInt(item.totalQuantity) || 0,
+            remainingQuantity: parseInt(item.totalQuantity) || 0,
+            packing: item.packing || '',
+            unit: item.unit || 'Cases',
+            netWeight: parseFloat(item.netWeight) || 0,
+            grossWeight: parseFloat(item.grossWeight) || 0,
+            dutyPercentage: parseFloat(item.dutyPercentage) || 0,
+            presentDutyBalance: parseFloat(item.presentDutyBalance) || 0
+          }
+        });
+        createdItems.push(created);
+      }
+    });
+
+    res.status(201).json(createdItems);
+  } catch (error) {
+    console.error('Create consignment error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create consignment.' });
+  }
+});
+
+/**
  * @route PUT /api/stock/:id
  * @desc Update a stock item
  */

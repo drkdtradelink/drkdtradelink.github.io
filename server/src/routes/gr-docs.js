@@ -730,7 +730,9 @@ router.put('/:id', async (req, res) => {
  */
 router.post('/:id/generate', async (req, res) => {
   try {
-    const { force } = req.query;
+    const { force, customGrNumber } = req.body;
+    if (!customGrNumber) return res.status(400).json({ error: 'Custom GR Number is required to finalize.' });
+    
     const whereClause = { id: req.params.id, status: 'draft' };
     if (req.company) {
       whereClause.companyId = req.company.id;
@@ -821,7 +823,8 @@ router.post('/:id/generate', async (req, res) => {
         where: { id: transaction.id },
         data: {
           status: 'generated',
-          generatedAt: new Date()
+          generatedAt: new Date(),
+          customGrNumber
         }
       });
     });

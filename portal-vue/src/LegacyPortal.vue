@@ -899,6 +899,57 @@
             </div>
           </div>
 
+          <!-- Onboarding Modal -->
+          <div v-if="showOnboardingModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+            <div class="card" style="width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+              <div class="card-header" style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white;">
+                <div class="card-title">Welcome! Let's get set up</div>
+              </div>
+              <div style="padding: 0 4px;">
+                <div v-if="onboardingStep === 1">
+                  <h5 style="color: #1e40af; margin-bottom: 1rem;">Step 1: Add Primary Bank Account</h5>
+                  <p style="font-size: 13px; margin-bottom: 1rem;">This is required to finalize documents. You can add more later.</p>
+                  <form @submit.prevent="submitOnboardingBank" class="form-grid">
+                    <input type="text" v-model="onboardingBank.accountHolderName" placeholder="Account Holder Name" class="form-control" required>
+                    <input type="text" v-model="onboardingBank.bankName" placeholder="Bank Name" class="form-control" required>
+                    <input type="text" v-model="onboardingBank.accountNumber" placeholder="Account Number (Numbers only)" pattern="[0-9]+" class="form-control" required>
+                    <input type="text" v-model="onboardingBank.ifscCode" placeholder="IFSC Code" class="form-control" required>
+                    <input type="text" v-model="onboardingBank.branchName" placeholder="Branch Name" class="form-control" required>
+                    <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">
+                      <button type="submit" class="btn btn-primary" :disabled="onboardingLoading">Save & Continue</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div v-if="onboardingStep === 2">
+                  <h5 style="color: #1e40af; margin-bottom: 1rem;">Step 2: Add Bank Guarantee (BG)</h5>
+                  <p style="font-size: 13px; margin-bottom: 1rem;">This is required for custom duties. You can add more later.</p>
+                  <form @submit.prevent="submitOnboardingBG" class="form-grid">
+                    <input type="text" v-model="onboardingBG.bgNumber" placeholder="BG Number" class="form-control" required>
+                    <input type="text" v-model="onboardingBG.bankName" placeholder="Bank Name" class="form-control" required>
+                    <input type="number" v-model="onboardingBG.amount" placeholder="Amount (₹)" class="form-control" required>
+                    <div style="grid-column: 1 / -1;">
+                      <label style="font-size: 12px; color: #64748b; margin-bottom: 4px; display: block;">Expiry Date</label>
+                      <input type="date" v-model="onboardingBG.expiryDate" class="form-control" required>
+                    </div>
+                    <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">
+                      <button type="submit" class="btn btn-primary" :disabled="onboardingLoading">Save & Continue</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div v-if="onboardingStep === 3">
+                  <h5 style="color: #1e40af; margin-bottom: 1rem;">Step 3: Add Initial Stock</h5>
+                  <p style="font-size: 13px; margin-bottom: 1rem;">If you have stock available, you can add it now. Otherwise, you can skip and add it later from the Dashboard.</p>
+                  <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" @click="finishOnboarding">Skip for now</button>
+                    <button type="button" class="btn btn-primary" @click="finishOnboardingAndAddStock">Add Stock</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Add/Edit Company Modal -->
           <div v-if="showCompanyModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
             <div class="card" style="width: 100%; max-width: 600px; margin-bottom: 0; max-height: 90vh; overflow-y: auto;">
@@ -1422,6 +1473,12 @@ const isCustomsDocsOpen = ref(true);
       // Modals
       const showStockModal = ref(false);
       const showPartyModal = ref(false);
+      const showOnboardingModal = ref(false);
+      const onboardingStep = ref(1);
+      const onboardingLoading = ref(false);
+      const onboardingBank = ref({ accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branchName: '', isPrimary: true });
+      const onboardingBG = ref({ bgNumber: '', bankName: '', amount: null, expiryDate: '' });
+
       const showCompanyModal = ref(false);
       const showDeleteCompanyModal = ref(false);
       const companyToDelete = ref(null);
@@ -1760,6 +1817,7 @@ const isCustomsDocsOpen = ref(true);
             fetchStock();
             fetchParties();
             fetchGRDocs();
+            fetchOnboardingStatus();
           } else if (currentRoute.value === '#/gr-docs') {
             fetchGRDocs();
           } else if (currentRoute.value === '#/gr-docs/create') {
@@ -1790,6 +1848,76 @@ const isCustomsDocsOpen = ref(true);
             }
           }
         });
+      };
+
+      const fetchOnboardingStatus = async () => {
+        if (currentUser.value?.role === 'admin') return;
+        try {
+          const [bankRes, bgRes] = await Promise.all([
+            fetch(getApiUrl('/api/bank/accounts'), { headers: getHeaders() }),
+            fetch(getApiUrl('/api/bank/guarantees'), { headers: getHeaders() })
+          ]);
+          if (bankRes.ok && bgRes.ok) {
+            const accounts = await bankRes.json();
+            const guarantees = await bgRes.json();
+            if (!accounts.length) {
+              onboardingStep.value = 1;
+              showOnboardingModal.value = true;
+            } else if (!guarantees.length) {
+              onboardingStep.value = 2;
+              showOnboardingModal.value = true;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to fetch onboarding status', e);
+        }
+      };
+
+      const submitOnboardingBank = async () => {
+        onboardingLoading.value = true;
+        try {
+          const res = await fetch(getApiUrl('/api/bank/accounts'), {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(onboardingBank.value)
+          });
+          if (res.ok) {
+            onboardingStep.value = 2;
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to save bank account.');
+          }
+        } finally {
+          onboardingLoading.value = false;
+        }
+      };
+
+      const submitOnboardingBG = async () => {
+        onboardingLoading.value = true;
+        try {
+          const res = await fetch(getApiUrl('/api/bank/guarantees'), {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(onboardingBG.value)
+          });
+          if (res.ok) {
+            onboardingStep.value = 3;
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to save bank guarantee.');
+          }
+        } finally {
+          onboardingLoading.value = false;
+        }
+      };
+
+      const finishOnboarding = () => {
+        showOnboardingModal.value = false;
+      };
+
+      const finishOnboardingAndAddStock = () => {
+        showOnboardingModal.value = false;
+        openCreateStockModal();
       };
 
       // Fetch APIs
@@ -2667,7 +2795,6 @@ const isCustomsDocsOpen = ref(true);
         loadRouteData();
       });
 
-      
 </script>
 
 <style>

@@ -140,6 +140,9 @@ router.post('/', async (req, res) => {
 
 router.post('/:id/finalize', async (req, res) => {
   try {
+    const { customBondNumber } = req.body;
+    if (!customBondNumber) return res.status(400).json({ error: 'Custom Bond Number is required to finalize.' });
+
     const whereClause = { id: req.params.id };
     if (req.company) whereClause.companyId = req.company.id;
 
@@ -151,6 +154,34 @@ router.post('/:id/finalize', async (req, res) => {
     if (!tx) return res.status(404).json({ error: 'Not found' });
     if (tx.status === 'finalized') return res.status(400).json({ error: 'Already finalized' });
 
+    // BG Constraint Check
+    const bgs = await prisma.bankGuarantee.findMany({ where: { companyId: tx.companyId } });
+    if (bgs.length > 0) {
+      let totalBgLimit = 0;
+      const bgMap = {};
+      for (const bg of bgs) {
+        if (!bgMap[bg.bgNumber] || bg.amount > bgMap[bg.bgNumber]) {
+          bgMap[bg.bgNumber] = bg.amount;
+        }
+      }
+      for (const bgNumber in bgMap) {
+        totalBgLimit += bgMap[bgNumber];
+      }
+      
+      const activeStocks = await prisma.stockItem.findMany({
+        where: { companyId: tx.companyId, remainingQuantity: { gt: 0 } }
+      });
+      const currentDuty = activeStocks.reduce((sum, s) => sum + (s.presentDutyBalance || 0), 0);
+      const newDuty = tx.items.reduce((sum, item) => sum + (item.dutyAmountInr || 0), 0);
+      
+      if (currentDuty + newDuty > totalBgLimit) {
+        return res.status(400).json({ error: `Total duty (${(currentDuty + newDuty).toFixed(2)}) exceeds Bank Guarantee limit (${totalBgLimit.toFixed(2)}).` });
+      }
+    }
+
+    const expiryDate = new Date(tx.date);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
     // Create Stock Items
     for (const item of tx.items) {
       await prisma.stockItem.create({
@@ -161,10 +192,11 @@ router.post('/:id/finalize', async (req, res) => {
           purchaseType: 'GR',
           purchaseNumber: tx.grPurchaseNumber,
           purchaseDate: tx.date,
-          bondNumber: `BOND-${tx.grPurchaseNumber}`,
+          bondNumber: customBondNumber,
           bondDate: tx.date,
           beDetails: `GR NO: ${tx.grPurchaseNumber} DT: ${tx.date.toISOString().split('T')[0]}`,
-          bondDetails: `BOND NO: BOND-${tx.grPurchaseNumber} DT: ${tx.date.toISOString().split('T')[0]}`,
+          bondDetails: `BOND NO: ${customBondNumber} DT: ${tx.date.toISOString().split('T')[0]}`,
+          bondExpiryDate: expiryDate,
           pricePerCaseUSD: item.rate,
           totalQuantity: item.qty,
           remainingQuantity: item.qty,
@@ -179,7 +211,7 @@ router.post('/:id/finalize', async (req, res) => {
 
     const updated = await prisma.gRPurchaseTransaction.update({
       where: { id: tx.id },
-      data: { status: 'finalized', generatedAt: new Date() }
+      data: { status: 'finalized', generatedAt: new Date(), customBondNumber }
     });
 
     res.json(updated);

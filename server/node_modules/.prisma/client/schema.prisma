@@ -183,6 +183,7 @@ model GRTransaction {
   exchangeRate        Float
   invoiceNumber       String
   dcNumber            String
+  customGrNumber      String?
   presentDutyBalance  Float
   status              String    @default("draft") // draft | generated | printed | cancelled
   calculationSnapshot String // JSON stringified snapshot
@@ -245,6 +246,7 @@ model GRPurchaseTransaction {
   vendorId            String
   date                DateTime
   status              String    @default("draft") // draft | finalized | cancelled
+  customBondNumber    String?
   bondValue           Float?
   calculationSnapshot String? // JSON stringified snapshot
   createdAt           DateTime  @default(now())
@@ -298,6 +300,7 @@ model ShippingBillTransaction {
   grossWeight         Float?    @default(0)
   exchangeRate        Float?    @default(97.20)
   status              String    @default("draft") // draft | finalized | cancelled
+  customSbNumber      String?
   calculationSnapshot String? // JSON stringified snapshot
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

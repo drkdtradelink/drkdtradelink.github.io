@@ -160,6 +160,9 @@ router.post('/', async (req, res) => {
 
 router.post('/:id/finalize', async (req, res) => {
   try {
+    const { customSbNumber } = req.body;
+    if (!customSbNumber) return res.status(400).json({ error: 'Custom SB Number is required to finalize.' });
+    
     const whereClause = { id: req.params.id };
     if (req.company) whereClause.companyId = req.company.id;
 
@@ -186,7 +189,7 @@ router.post('/:id/finalize', async (req, res) => {
 
     const updated = await prisma.shippingBillTransaction.update({
       where: { id: tx.id },
-      data: { status: 'finalized', generatedAt: new Date() }
+      data: { status: 'finalized', generatedAt: new Date(), customSbNumber }
     });
 
     res.json(updated);
